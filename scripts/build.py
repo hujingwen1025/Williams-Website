@@ -4,6 +4,7 @@ from pathlib import Path
 from html import escape
 from urllib.parse import urlsplit
 import argparse
+from error_pages import write_error_pages
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
@@ -279,9 +280,10 @@ if __name__ == "__main__":
     (PUBLIC / "assets").mkdir(exist_ok=True)
     (PUBLIC / "index.html").write_text(page("en"), encoding="utf-8")
     (PUBLIC / "zh" / "index.html").write_text(page("zh"), encoding="utf-8")
+    write_error_pages(PUBLIC, SITE_URL)
     sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
     for suffix in ("/", "/zh/"):
         sitemap += f'<url><loc>{escape(SITE_URL + suffix)}</loc><xhtml:link rel="alternate" hreflang="en" href="{escape(SITE_URL)}/"/><xhtml:link rel="alternate" hreflang="zh-Hans" href="{escape(SITE_URL)}/zh/"/></url>\n'
     (PUBLIC / "sitemap.xml").write_text(sitemap + "</urlset>\n", encoding="utf-8")
     (PUBLIC / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8")
-    print(f"Built 2 languages, {len(FEATURES)} featured projects, {len(REPOS)} directory projects.")
+    print(f"Built 2 languages, {len(FEATURES)} featured projects, {len(REPOS)} directory projects, and 8 error pages.")

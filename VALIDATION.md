@@ -19,3 +19,11 @@ The site has not been publicly deployed. Browser checks used one browser engine 
 For local preview, rebuild, test, and hosting instructions, see [README.md](README.md).
 
 Saved previews: [desktop English](artifacts/desktop-preview.jpg), [mobile Chinese](artifacts/mobile-zh-preview.jpg), and [animated illustration section](artifacts/animation-preview.jpg) (a still frame).
+
+## Error pages — 2026-10-08
+
+- Added English and Chinese 403, 404, 500, and 503 pages. Static checks verify all eight generated files, landmarks, noindex metadata, self-contained resources, recovery links, language links, and project-site subpaths. Rebuilding retains the error pages.
+- The custom local preview returned HTTP 404 for deeply nested English and Chinese missing URLs, including a request under `original/`. HEAD requests retained HTTP 404 with an empty body. Existing homepages and directly requested error files returned HTTP 200 as expected for static files.
+- Browser checks used installed Chrome in headless mode. Both error-page languages fit 320, 390, 768, and 1440px viewports without horizontal overflow. All eight pages loaded with the expected headings and titles. Home, projects, and language links worked; the keyboard skip link had a visible 3px focus outline. Reduced motion disabled the illustration animation. English and Chinese recovery remained usable without JavaScript. No JavaScript exceptions or external resource requests occurred.
+- Desktop English and mobile Chinese screenshots were visually reviewed: [404 desktop](artifacts/error-404-desktop.png), [404 mobile Chinese](artifacts/error-404-mobile-zh.png).
+- GitHub Pages’ automatic custom 404 convention was checked against [GitHub’s documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-custom-404-page-for-your-github-pages-site). The 403/500/503 pages require a host configured to use them; the presence of static HTML files does not configure GitHub’s own infrastructure errors.

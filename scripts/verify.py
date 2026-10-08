@@ -8,6 +8,7 @@ import re
 import shutil
 import struct
 import xml.etree.ElementTree as ET
+from error_pages import ERRORS, page as error_page
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
@@ -108,6 +109,34 @@ def verify():
         check(data[:8] == b"\x89PNG\r\n\x1a\n", "Invalid social PNG")
         check(struct.unpack(">II", data[16:24]) == (1200, 630), "Incorrect social image dimensions")
     allowed = {"index.html", "zh/index.html", "robots.txt", "sitemap.xml", "assets/style.css", "assets/site.js", "assets/favicon.svg", "assets/social.png", "assets/social-zh.png"}
+    site_url = next(a['href'] for a in Document((PUBLIC / 'index.html').read_text()).attrs('link') if a.get('rel') == 'canonical').rstrip('/')
+    base = urlsplit(site_url).path.rstrip('/') + '/'
+    sitemap = (PUBLIC / 'sitemap.xml').read_text()
+    for code in ERRORS:
+        for lang, prefix in [('en', ''), ('zh', 'zh/')]:
+            relative = f'{prefix}{code}.html'
+            allowed.add(relative)
+            source = (PUBLIC / relative).read_text()
+            doc = Document(source)
+            check(source == error_page(code, lang, site_url), f'Stale error page: {relative}')
+            check(len(doc.attrs('h1')) == len(doc.attrs('main')) == 1, f'Error page landmarks: {relative}')
+            check(doc.attrs('html')[0]['lang'] == ('zh-Hans' if lang == 'zh' else 'en'), f'Error language: {relative}')
+            check(any(a.get('name') == 'robots' and 'noindex' in a.get('content', '') for a in doc.attrs('meta')), f'Error page must not be indexed: {relative}')
+            check(not any(a.get('src') for a in doc.attrs('script')), f'Error page needs an external script: {relative}')
+            check(not any(a.get('rel') == 'stylesheet' for a in doc.attrs('link')), f'Error page needs an external stylesheet: {relative}')
+            for a in doc.attrs('a'):
+                href = a['href']
+                if href.startswith('#') or urlsplit(href).scheme:
+                    continue
+                check(href.startswith(base), f'Error link loses site base: {href}')
+                local = PUBLIC / urlsplit(href).path[len(base):]
+                check(local.exists(), f'Broken error recovery/language link: {href}')
+            check(f'/{code}.html' not in sitemap, 'Error pages must not appear in sitemap')
+    # Project Pages subpaths must survive arbitrary nested missing URLs.
+    sample = Document(error_page(404, 'en', 'https://example.com/portfolio'))
+    check(sample.attrs('html')[0]['data-home'] == '/portfolio/', 'Missing project-site base')
+    check(all(a['href'].startswith(('/portfolio/', '#', 'https:', 'mailto:')) for a in sample.attrs('a')), 'Subpath recovery links break')
+    print('PASS 8 bilingual, self-contained error pages, recovery links, noindex, project-site subpaths')
     # Finder may recreate its metadata while a folder is open; Git ignores it.
     actual = {p.relative_to(PUBLIC).as_posix() for p in PUBLIC.rglob("*") if p.is_file() and p.name != ".DS_Store"}
     check(actual == allowed, f"Unexpected/missing publishable files: {actual ^ allowed}")
