@@ -11,15 +11,21 @@
   root.classList.add('has-js');
 
   // A normal hyperlink remains useful if JavaScript is unavailable.
-  const readingSections = [...document.querySelectorAll('main > section[id], .story-step[id], .feature-card[id]')];
+  const readingSections = [...document.querySelectorAll('main > section[id], .feature-card[id], .repo-card[id], .interest-card[id]')];
   const updateLanguageLink = (keepReadingPosition = false) => {
     const target = new URL(language.getAttribute('href'), location.href);
     target.hash = location.hash;
     if (keepReadingPosition) {
       let current = 'top';
+      let anchored = null;
+      try { anchored = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch { /* A malformed hash is still a usable URL. */ }
       readingSections.forEach(section => {
-        if (section.getBoundingClientRect().top <= window.innerHeight * 0.5) current = section.id;
+        if (!section.hidden && section.getClientRects().length && section.getBoundingClientRect().top <= window.innerHeight * 0.5) current = section.id;
       });
+      if (anchored) {
+        const box = anchored.getBoundingClientRect();
+        if (box.top >= 0 && box.top < window.innerHeight && box.bottom > 0) current = anchored.id;
+      }
       target.hash = current === 'top' ? '' : `#${current}`;
     }
     language.href = target.href;
@@ -97,159 +103,132 @@
   });
   controls.hidden = false;
 
-  // Reveals are opt-in. A failure in animation setup leaves all text readable.
-  let revealObserver;
-  const revealAll = () => {
-    root.classList.remove('motion-ready');
-    if (revealObserver) revealObserver.disconnect();
-  };
-  const configureReveals = () => {
-    revealAll();
-    if (motion.matches || !('IntersectionObserver' in window)) return;
-    try {
-      revealObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.08, rootMargin: '0px 0px 36px 0px' });
-      document.querySelectorAll('[data-reveal]').forEach(element => revealObserver.observe(element));
-      document.querySelectorAll('.feature-grid, .interests-grid').forEach(grid => {
-        [...grid.children].forEach((child, i) => child.style.setProperty('--reveal-delay', `${(i % 3) * 65}ms`));
+  // The page is composed and visible by default. Only the glyph field moves.
+  const canvas = document.querySelector('#ascii-field');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    const sample = document.createElement('canvas');
+    const ink = sample.getContext('2d', { willReadFrequently: true });
+    const hero = canvas.closest('.hero');
+    const glyphs = ' .:+*#%@';
+    let cells = [], width = 0, height = 0, visible = true, frame = 0;
+    let lens = null;
+    let started = performance.now();
+    let last = 0;
+    const style = getComputedStyle(root);
+    const palette = [1, 2, 3, 4].map(i => style.getPropertyValue(`--color-glyph-${i}`).trim());
+    const draw = (time = 0) => {
+      if (!ctx || !ink) return;
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `12px ${style.getPropertyValue('--font-outlier')}`;
+      ctx.textBaseline = 'top';
+      const small = width < 701;
+      cells.forEach(cell => {
+        const distance = lens ? Math.hypot(cell.x - lens.x, cell.y - lens.y) : Infinity;
+        const phase = Math.sin(cell.x * 0.017 + cell.y * 0.009 + time * 0.0004);
+        const density = Math.min(1, cell.density + (distance < 100 ? 0.15 * (1 - distance / 100) : 0));
+        const shade = small ? Math.min(1, Math.floor(density * 3)) : Math.min(3, Math.floor(density * 3));
+        ctx.fillStyle = palette[shade];
+        const index = Math.max(1, Math.min(glyphs.length - 1, Math.floor(density * 6 + phase * 0.7)));
+        ctx.fillText(glyphs[index], cell.x, cell.y);
       });
-      root.classList.add('motion-ready');
-    } catch {
-      revealAll();
+      canvas.dataset.ready = 'true';
+    };
+    const resize = () => {
+      if (!ctx || !ink) return;
+      width = Math.round(hero.clientWidth);
+      height = Math.round(hero.clientHeight);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sample.width = width;
+      sample.height = height;
+      const small = width < 701;
+      const size = small ? Math.min(height * 0.8, 500) : Math.min(width * 0.5, height * 0.82);
+      ink.font = `600 ${size}px ${style.getPropertyValue('--font-display')}`;
+      ink.textAlign = 'center';
+      ink.textBaseline = 'middle';
+      ink.fillText('W', width * (small ? 0.94 : 0.77), height * 0.48);
+      const pixels = ink.getImageData(0, 0, width, height).data;
+      cells = [];
+      for (let y = 16; y < height - 16; y += 16) {
+        for (let x = Math.floor(width * (small ? 0.58 : 0.52) / 8) * 8; x < width; x += 8) {
+          const a = pixels[(y * width + x) * 4 + 3] / 255;
+          const wave = Math.sin(x * 0.007) * 32;
+          const contour = Math.min(...[0.28, 0.5, 0.72].map(band => Math.abs(y - height * band - wave)));
+          if (a > 0.15) cells.push({ x, y, density: 0.35 + a * 0.35 + ((x + y) % 37) / 150 });
+          else if (contour < 24) cells.push({ x, y, density: 0.05 + (1 - contour / 24) * 0.14 });
+        }
+      }
+      draw(motion.matches ? 0 : Math.min(performance.now() - started, 4000));
+    };
+    const animate = time => {
+      frame = 0;
+      const elapsed = time - started;
+      if (motion.matches || !visible || document.hidden || elapsed > 4000) return;
+      if (time - last >= 1000 / 30) { draw(elapsed); last = time; }
+      frame = requestAnimationFrame(animate);
+    };
+    const resume = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      if (!motion.matches && visible && !document.hidden && performance.now() - started <= 4000) frame = requestAnimationFrame(animate);
+      else draw(0);
+    };
+    if (ctx && ink) {
+      resize();
+      document.fonts.ready.then(() => { started = performance.now(); resize(); resume(); });
+      if ('ResizeObserver' in window) new ResizeObserver(resize).observe(hero);
+      else window.addEventListener('resize', resize, { passive: true });
+      if ('IntersectionObserver' in window) new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; resume(); }).observe(hero);
+      hero.addEventListener('pointermove', event => {
+        if (motion.matches || !visible) return;
+        const box = hero.getBoundingClientRect();
+        lens = { x: event.clientX - box.left, y: event.clientY - box.top };
+        if (!frame) draw(4000);
+      }, { passive: true });
+      hero.addEventListener('pointerleave', () => { lens = null; if (!frame) draw(0); });
+      onMediaChange(motion, () => { lens = null; resume(); });
+      document.addEventListener('visibilitychange', resume);
     }
-  };
-  configureReveals();
+  }
 
-  // Short, once-per-visit performances start only when the artwork is in view.
-  const illustrations = [...document.querySelectorAll('.hero-piano, .vinyl, .code-note, .project-art, .exabyte-mark, .interest-visual')];
-  const playedIllustrations = new WeakSet();
-  const visibleIllustrations = new Set();
-  const illustrationTimers = new Map();
-  let illustrationObserver;
-  document.querySelectorAll('.piano-keys').forEach(keys => {
-    [...keys.children].forEach((key, i) => key.style.setProperty('--key-delay', `${((i * 5) % 14) * 45}ms`));
-  });
-  const playVisibleIllustrations = () => {
-    if (motion.matches || document.hidden) return;
-    visibleIllustrations.forEach(element => {
-      if (playedIllustrations.has(element)) return;
-      const panel = element.closest('.scene-panel');
-      if (panel && !panel.classList.contains('is-active')) return;
-      const rect = element.getBoundingClientRect();
-      // Hidden mobile/desktop variants must keep their first performance.
-      if (!rect.width || !rect.height || rect.bottom <= 72 || rect.top >= window.innerHeight) return;
-      playedIllustrations.add(element);
-      element.classList.add('is-playing');
-      illustrationObserver.unobserve(element);
-      visibleIllustrations.delete(element);
-      illustrationTimers.set(element, window.setTimeout(() => {
-        element.classList.remove('is-playing');
-        illustrationTimers.delete(element);
-      }, 4400));
-    });
-  };
-  const configureIllustrations = () => {
-    if (illustrationObserver) illustrationObserver.disconnect();
-    visibleIllustrations.clear();
-    illustrationTimers.forEach((timer, element) => {
-      clearTimeout(timer);
-      element.classList.remove('is-playing');
-    });
-    illustrationTimers.clear();
-    if (motion.matches || !('IntersectionObserver' in window)) return;
-    try {
-      illustrationObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.25) visibleIllustrations.add(entry.target);
-          else visibleIllustrations.delete(entry.target);
-        });
-        playVisibleIllustrations();
-      }, { threshold: 0.25, rootMargin: '-72px 0px 0px 0px' });
-      illustrations.forEach(element => {
-        if (!playedIllustrations.has(element)) illustrationObserver.observe(element);
-      });
-    } catch {
-      // Static illustrations remain complete if observation is unsupported.
-      visibleIllustrations.clear();
-    }
-  };
-  configureIllustrations();
-  document.addEventListener('visibilitychange', playVisibleIllustrations);
-
-  // A single frame per scroll burst. Work is bounded to three scenes and four links.
-  const steps = [...document.querySelectorAll('[data-scene]')];
-  const panels = [...document.querySelectorAll('[data-panel]')];
-  const markers = [...document.querySelectorAll('.scene-markers i')];
-  const navLinks = [...navigation.querySelectorAll('a')];
-  const navSections = navLinks.map(a => document.querySelector(a.getAttribute('href')));
-  const scene = document.querySelector('.scene-stack');
+  // Track native reading position without changing scroll behavior.
+  const navLinks = [...navigation.querySelectorAll('a[href^="#"]')];
+  const navSections = navLinks.map(a => document.getElementById(a.hash.slice(1)));
   let queued = false;
-  let activeScene = -1;
-  let activeNav = -1;
   const renderScroll = () => {
     queued = false;
-    const height = window.innerHeight;
-    const fullHeight = Math.max(1, document.documentElement.scrollHeight - height);
+    const fullHeight = Math.max(1, root.scrollHeight - window.innerHeight);
     progress.style.transform = `scaleX(${Math.min(1, Math.max(0, window.scrollY / fullHeight))})`;
-    let currentNav = -1;
+    let current = -1;
     navSections.forEach((section, i) => {
-      if (section.getBoundingClientRect().top <= height * 0.4) currentNav = i;
+      if (section && section.getBoundingClientRect().top <= window.innerHeight * 0.4) current = i;
     });
-    if (currentNav !== activeNav) {
-      activeNav = currentNav;
-      navLinks.forEach((a, i) => {
-        if (i === currentNav) a.setAttribute('aria-current', 'location');
-        else a.removeAttribute('aria-current');
-      });
-    }
-    if (mobile.matches || motion.matches) {
-      playVisibleIllustrations();
-      return;
-    }
-    let nearest = 0;
-    let distance = Infinity;
-    steps.forEach((step, i) => {
-      const rect = step.getBoundingClientRect();
-      const d = Math.abs(rect.top + rect.height / 2 - height / 2);
-      if (d < distance) { distance = d; nearest = i; }
+    navLinks.forEach((a, i) => {
+      if (i === current) a.setAttribute('aria-current', 'location');
+      else a.removeAttribute('aria-current');
     });
-    if (nearest !== activeScene) {
-      activeScene = nearest;
-      panels.forEach((panel, i) => panel.classList.toggle('is-active', i === nearest));
-      markers.forEach((marker, i) => marker.classList.toggle('is-active', i === nearest));
-      steps.forEach((step, i) => step.classList.toggle('is-current', i === nearest));
-    }
-    // Inactive sticky scenes overlap geometrically, but only the active one plays.
-    playVisibleIllustrations();
-    // No ongoing animation loop; movement stops when native scrolling stops.
-    if (distance < height) {
-      const rect = steps[nearest].getBoundingClientRect();
-      const shift = Math.max(-1, Math.min(1, (rect.top + rect.height / 2 - height / 2) / height));
-      scene.style.setProperty('--scene-shift', shift.toFixed(3));
-    }
   };
   const scheduleScroll = () => {
     if (!queued) { queued = true; requestAnimationFrame(renderScroll); }
   };
   window.addEventListener('scroll', scheduleScroll, { passive: true });
   window.addEventListener('resize', scheduleScroll, { passive: true });
-  onMediaChange(motion, () => { configureReveals(); configureIllustrations(); scheduleScroll(); });
   renderScroll();
-  // Deep links and a language switch must expose their destination without a fade delay.
+
+  // Existing project deep links open their native disclosure and stay visible.
   const exposeHashTarget = () => {
     if (!location.hash) return;
     let id;
     try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }
     const target = document.getElementById(id);
-    if (target) {
-      target.classList.add('is-visible');
-      target.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-visible'));
+    if (!target) return;
+    if (target.classList.contains('repo-card')) {
+      if (target.hidden) { search.value = ''; filters[0].click(); }
+      target.querySelector('details').open = true;
+      requestAnimationFrame(() => target.scrollIntoView({ block: 'start', behavior: 'instant' }));
     }
   };
   window.addEventListener('hashchange', exposeHashTarget);

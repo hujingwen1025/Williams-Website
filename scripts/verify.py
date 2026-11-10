@@ -50,14 +50,22 @@ def verify():
         check(doc.attrs("html")[0]["lang"] == lang, "Wrong page language")
         check(len(doc.attrs("h1")) == 1, "Expected one primary heading")
         check(len(doc.attrs("main")) == 1, "Expected one main landmark")
-        check(len(doc.classified("feature-copy")) == 6, "Incomplete featured projects")
-        check(len(doc.classified("repo-card")) == 18, "Incomplete project directory")
+        check(len(doc.classified("feature-copy")) == 4, "Expected four selected product projects")
+        check(len(doc.classified("repo-card")) == 28, "Expected the complete 28-project catalog")
         check(len(doc.classified("interest-card")) == 4, "Incomplete interests")
+        check([a['id'] for a in doc.classified('feature-card')] == ['project-resona-lite', 'project-cubers', 'project-academy', 'project-dorm'], 'Incorrect flagship lineup')
+        section_ids = [a['id'] for a in doc.attrs('section')]
+        check(section_ids == ['top', 'about', 'work', 'beyond', 'exabyte', 'explore', 'connect'], 'The personal-first reading order changed')
+        for anchor in ['project-resona', 'project-whaos', 'project-rhythm', 'project-sonora', 'project-academy', 'project-dorm']:
+            check(anchor in ids, f'Lost original project anchor: {anchor}')
+        for interest in ['interest-piano', 'interest-sports', 'interest-video', 'interest-games']:
+            check(interest in ids, f'Missing personal interest: {interest}')
         for required in ["about", "work", "exabyte", "beyond", "explore", "connect"]:
             check(required in ids, f"Missing section: {required}")
         # The substantive text is present in HTML, without executing any JavaScript.
-        for name in ["Jingwen Hu", "胡竞文", "Resona", "WhaOS", "Rhythm Cook", "Sonora", "CAICP Academy", "Dorm Pass Manager", "Neuorise", "Python", "AppleScript", "UNO"]:
+        for name in ["Jingwen Hu", "胡竞文", "Resona Lite", "Cubers", "Daylight", "WhaOS", "Rhythm Cook", "Sonora", "CAICP Academy", "Dorm Pass Manager", "Neuorise", "Python", "AppleScript", "UNO"]:
             check(name in text, f"Missing static content: {name}")
+        check(('开发中' if lang == 'zh-Hans' else 'In development') in text, 'Cubers must not imply a public launch')
         for banned in [r"\bbirthday\b", r"\bage:\s*\d", r"\bBeijing\b", r"\bKeystone\b", r"Oct(?:ober)?\s*25", r"年龄", r"生日", r"北京", r"鼎石", r"KACO", r"Fisherman Fishes", r"Slay Apple"]:
             check(not re.search(banned, text, re.I), f"Excluded biography/archive content: {banned}")
         check("jingwen.hu@exabyte.org.cn" in text, "Missing approved business email")
@@ -98,9 +106,9 @@ def verify():
         check("hidden" in controls, "Inactive no-JS search controls should not be shown")
         check("hidden" in doc.classified("menu-toggle")[0], "Inactive no-JS menu button should not be shown")
         repo_links = {a["href"] for a in doc.attrs("a") if a.get("href", "").startswith("https://github.com/") and len(urlsplit(a["href"]).path.strip("/").split("/")) == 2}
-        check(len(repo_links) == 24, "Expected twenty-four distinct public projects")
+        check(len(repo_links) == 28, "Expected twenty-eight distinct public projects")
         editions.append((set(ids), repo_links))
-        print(f"PASS {relative}: static biography, 24 projects, labels, links, metadata, privacy")
+        print(f"PASS {relative}: personal-first structure, 4 flagships, 28 projects, 4 interests, links, metadata, privacy")
     check(editions[0] == editions[1], "Languages differ in sections or repository destinations")
     ET.parse(PUBLIC / "sitemap.xml")
     ET.parse(PUBLIC / "assets/favicon.svg")
@@ -109,6 +117,15 @@ def verify():
         check(data[:8] == b"\x89PNG\r\n\x1a\n", "Invalid social PNG")
         check(struct.unpack(">II", data[16:24]) == (1200, 630), "Incorrect social image dimensions")
     allowed = {"index.html", "zh/index.html", "robots.txt", "sitemap.xml", "assets/style.css", "assets/site.js", "assets/favicon.svg", "assets/social.png", "assets/social-zh.png"}
+    allowed.update('assets/' + name for name in ['tokens.css', 'base.css', 'fonts.css'])
+    allowed.update('assets/fonts/' + name for name in ['familjen-grotesk-0.ttf', 'familjen-grotesk-1.ttf', 'ibm-plex-sans-0.ttf', 'ibm-plex-sans-1.ttf', 'jetbrains-mono-0.ttf', 'familjengrotesk-OFL.txt', 'ibmplexsans-OFL.txt', 'jetbrainsmono-OFL.txt'])
+    allowed.update('assets/projects/' + name for name in ['resona-home.png', 'resona-chords.png', 'cubers-learn.jpg', 'cubers-pathways.jpg', 'academy-desktop.png', 'dorm-desktop.png'])
+    # Every imported stylesheet and local font/image URL must resolve inside public/.
+    for stylesheet in (PUBLIC / 'assets').glob('*.css'):
+        for raw in re.findall(r'url\([\"\']?([^\)\"\']+)', stylesheet.read_text()):
+            check(not urlsplit(raw).scheme, f'Remote CSS dependency: {raw}')
+            resource = (stylesheet.parent / raw).resolve()
+            check(resource.is_relative_to(PUBLIC.resolve()) and resource.is_file(), f'Broken CSS dependency: {raw}')
     site_url = next(a['href'] for a in Document((PUBLIC / 'index.html').read_text()).attrs('link') if a.get('rel') == 'canonical').rstrip('/')
     base = urlsplit(site_url).path.rstrip('/') + '/'
     sitemap = (PUBLIC / 'sitemap.xml').read_text()

@@ -1,6 +1,6 @@
 # Public content sources
 
-Content reviewed on 2026-10-08. This is a maintainer document, not part of the published site.
+Content reviewed on 2026-11-10. This is a maintainer document, not part of the published site.
 
 ## Identity, interests, and organization
 
@@ -9,7 +9,29 @@ Content reviewed on 2026-10-08. This is a maintainer document, not part of the p
 - The user explicitly supplied the founder relationship with [Exabyte Technologies](https://github.com/Exabyte-Technologies) and approved `jingwen.hu@exabyte.org.cn` as a publicly visible business email. Do not infer an additional legal company role from repository ownership.
 - [Public organization API](https://api.github.com/orgs/Exabyte-Technologies): “Making technology more safe, more convenient and more approachable” and the listed website `https://exabyte.org.cn`. The geometric organization illustration is an original abstract motif, not a claim to be Exabyte’s official logo.
 
-## Featured projects
+## Current selected projects
+
+The approved lineup is Resona Lite, Cubers, CAICP Academy, and Dorm Pass Manager. All previous projects remain in the complete 28-entry catalog, including their full descriptions. Calendar tools have normal catalog placement.
+
+| Project | Public source | Evidence and presentation |
+| --- | --- | --- |
+| Resona Lite | [README](https://github.com/Exabyte-Technologies/Resona-Lite/blob/main/README.md) | On-device ambient audio, chord generation, moods, mixer, timer. Exabyte project. The documented App Store destination is linked without inferring downloads or adoption. |
+| Cubers | [README](https://github.com/Exabyte-Technologies/Cubers/blob/main/README.md) | Puzzle learning, 3D practice, play, and community. Explicitly **in development**, not publicly launched. Do not imply production smart-cube, live AI, or store approval. |
+| CAICP Academy | [README](https://github.com/hujingwen1025/CAICP-Academy/blob/main/README.md) | Independent English/Chinese learning resource. The documented public website is linked. No official certification endorsement implied. |
+| Dorm Pass Manager | [README](https://github.com/Exabyte-Technologies/Dorm-Pass-Manager/blob/main/README.md) | Organization project, role-based approvals and sign-in workflows. Not a sole-authorship claim. |
+| Daylight | [README](https://github.com/Exabyte-Technologies/Daylight/blob/main/README.md) | Read-only ICS calendar viewer. Standard catalog entry. |
+| William’s Calendar | [README](https://github.com/hujingwen1025/Williams-Calendar/blob/main/README.md) and the user’s description | Personal calendar, not positioned as a general-purpose flagship. No schedule records, feed URLs, or personal calendar data included. |
+
+### Image provenance
+
+- Resona Lite: `resona-lite/docs/screenshots/home.png` and `chords.png` from the public project, copied from the matching local checkout. Captions identify the web preview.
+- Cubers: `docs/images/readme/learn-path.jpg` and `pathways.jpg` from the public project. Captions explicitly identify development screenshots and synthetic test progress. Emulator chrome belongs to the original capture.
+- CAICP Academy: Hallmark capture of the local, unchanged application homepage in a new browser context with zero study history. No existing browser profile or stored user progress accessed.
+- Dorm Pass Manager: Hallmark capture of the public `templates/signin.html`. The database-backed application could not be run without operational configuration, so this is explicitly a **public sign-in template preview**. Only neutral display values were supplied: application name, Exabyte favicon, public repository background; address and campus information empty. Network scripts were omitted for the static capture. No real campus identity, account, user record, configuration, or credential was loaded.
+- Fonts: Familjen Grotesk, IBM Plex Sans, JetBrains Mono from Google Fonts, with their SIL Open Font Licenses under `public/assets/fonts/`. Runtime font requests are local.
+- Sharing cards and favicon are code-native assets composed from the Cobalt system. No stock portraits, invented testimonials, metrics, or generated product interfaces.
+
+## Original featured descriptions retained in the catalog
 
 | Project | Source | Supported description and attribution |
 | --- | --- | --- |
@@ -20,7 +42,7 @@ Content reviewed on 2026-10-08. This is a maintainer document, not part of the p
 | CAICP Academy | [README](https://github.com/hujingwen1025/CAICP-Academy/blob/main/README.md) | Independent bilingual learning resource, lessons, labs, practice, mistake notebook, local progress. Not an official certification provider. |
 | Dorm Pass Manager | [README](https://github.com/Exabyte-Technologies/Dorm-Pass-Manager/blob/main/README.md) | Exabyte application for passes, multi-stage approvals, role-based access, kiosk/mobile sign-ins and real-time updates. Organization attribution, no sole-authorship claim. |
 
-Descriptions summarize documented functionality; they are not independent validation that every external application is deployed, maintained, or fully operational. All featured illustrations are abstract CSS artwork, not screenshots.
+Descriptions summarize documented functionality; they are not independent validation that every external application is deployed, maintained, or fully operational. The original project facts and attribution remain in native catalog disclosures; the current flagship imagery is documented above.
 
 ## Additional public work
 

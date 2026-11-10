@@ -1,0 +1,40 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "site",
+  "shape": "Personal Index",
+  "theme": "cobalt",
+  "axes": "light/grotesk-sans/cool",
+  "hero": "Settled",
+  "nav": "balanced single-line",
+  "footer": "colophon block",
+  "imagery": "real product screenshots and explicitly captioned development/template previews",
+  "photos": [],
+  "entry": "public/index.html",
+  "fingerprint": "personal-introduction-compact-projects-ruled-interests",
+  "sections": [
+   "introduction",
+   "biography and toolkit",
+   "selected work",
+   "beyond code",
+   "Exabyte",
+   "complete catalog",
+   "contact",
+   "colophon"
+  ],
+  "signature": "ASCII W from the public name",
+  "waived": [],
+  "prompt": "Balanced personal introduction with Cobalt, four product flagships, full interests, and 28 public projects",
+  "sweep": {
+   "floor": 0,
+   "reflex": 0,
+   "warnings": 5,
+   "keptLinks": "37/37",
+   "keptFields": "1/1",
+   "keptScriptHooks": "23/23"
+  },
+  "reviews": "in-thread",
+  "date": "2026-11-10"
+ }
+]

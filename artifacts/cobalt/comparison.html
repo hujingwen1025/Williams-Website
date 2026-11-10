@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Before and after</title>
+<meta name="description" content="The redesign's screenshots, before and after, side by side.">
+<style>
+:root { color-scheme: light; --paper: oklch(97% 0.004 250); --ink: oklch(22% 0.01 250); --muted: oklch(45% 0.01 250); --rule: oklch(86% 0.006 250); }
+html, body { overflow-x: clip; }
+body { margin: 0; padding: 48px 32px 96px; background: var(--paper); color: var(--ink); font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.15; letter-spacing: -0.01em; }
+p { margin: 0; color: var(--muted); max-width: 72ch; }
+section { margin-top: 72px; }
+h2 { margin: 0 0 16px; font-size: 18px; font-weight: 600; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-bottom: 32px; }
+.pair.phone { max-width: 760px; }
+figure { margin: 0; }
+img { display: block; width: 100%; height: auto; outline: 1px solid var(--rule); outline-offset: -1px; background: oklch(100% 0 0); }
+figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); }
+@media (max-width: 720px) { body { padding: 32px 16px 64px; } .pair { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<h1>Before and after</h1>
+<p>All 37 original links, the search field, and all 23 script hooks are preserved. Headings were revised under the approved personal-first plan; project facts and interests remain in the readable catalog and biography. Floor findings: 248 before, 0 now. Reflex findings: 176 before, 0 now.</p>
+<section><h2>index</h2><div class="pair "><figure><img src="before/index-1440x900.png" alt="index before, first screen at 1440"><figcaption>Before, first screen at 1440</figcaption></figure><figure><img src="after/index-1440x900.png" alt="index after, first screen at 1440"><figcaption>After, first screen at 1440</figcaption></figure></div><div class="pair "><figure><img src="before/index-1440-full.png" alt="index before, whole page at 1440"><figcaption>Before, whole page at 1440</figcaption></figure><figure><img src="after/index-1440-full.png" alt="index after, whole page at 1440"><figcaption>After, whole page at 1440</figcaption></figure></div><div class="pair phone"><figure><img src="before/index-375.png" alt="index before, whole page on a phone"><figcaption>Before, whole page on a phone</figcaption></figure><figure><img src="after/index-375.png" alt="index after, whole page on a phone"><figcaption>After, whole page on a phone</figcaption></figure></div></section>
+<section><h2>Chinese edition</h2><div class="pair"><figure><img src="after/chinese-1440x900.png" alt="Chinese desktop introduction"><figcaption>Desktop</figcaption></figure><figure><img src="chinese-home-phone.png" alt="Chinese mobile introduction"><figcaption>Mobile</figcaption></figure></div></section></body>
+</html>
