@@ -8,6 +8,7 @@
   const navigation = document.querySelector('.navigation');
   const language = document.querySelector('.language-link');
   const progress = document.querySelector('.reading-progress span');
+  const projectList = document.querySelector('.repo-grid');
   root.classList.add('has-js');
 
   // A normal hyperlink remains useful if JavaScript is unavailable.
@@ -18,13 +19,22 @@
     if (keepReadingPosition) {
       let current = 'top';
       let anchored = null;
+      const listBounds = projectList.getBoundingClientRect();
+      const readingBounds = element => {
+        const box = element.getBoundingClientRect();
+        return projectList.contains(element)
+          ? { top: Math.max(box.top, listBounds.top), bottom: Math.min(box.bottom, listBounds.bottom) }
+          : box;
+      };
       try { anchored = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch { /* A malformed hash is still a usable URL. */ }
       readingSections.forEach(section => {
-        if (!section.hidden && section.getClientRects().length && section.getBoundingClientRect().top <= window.innerHeight * 0.5) current = section.id;
+        if (section.hidden) return;
+        const box = readingBounds(section);
+        if (box.bottom > box.top && box.top <= window.innerHeight * 0.5) current = section.id;
       });
       if (anchored) {
-        const box = anchored.getBoundingClientRect();
-        if (box.top >= 0 && box.top < window.innerHeight && box.bottom > 0) current = anchored.id;
+        const box = readingBounds(anchored);
+        if (box.top >= 0 && box.top < window.innerHeight && box.bottom > box.top) current = anchored.id;
       }
       target.hash = current === 'top' ? '' : `#${current}`;
     }
@@ -157,6 +167,22 @@
   }
 
   const searchText = cards.map(card => normalize(card.textContent));
+  const fitProjectList = () => {
+    const fullRows = 6;
+    const preview = cards.filter(card => !card.hidden).slice(0, fullRows + 1);
+    if (preview.length <= fullRows) {
+      projectList.style.removeProperty('--project-list-height');
+      return;
+    }
+    // Measure summaries so expanding a description cannot enlarge the scrollport.
+    const borders = projectList.offsetHeight - projectList.clientHeight;
+    const height = preview.reduce((total, card, index) => {
+      const rowHeight = card.querySelector('summary').getBoundingClientRect().height
+        + card.offsetHeight - card.clientHeight;
+      return total + (index === fullRows ? rowHeight / 2 : rowHeight);
+    }, borders);
+    projectList.style.setProperty('--project-list-height', `${height}px`);
+  };
   const filterProjects = () => {
     const query = normalize(search.value.trim());
     let visible = 0;
@@ -168,6 +194,9 @@
     });
     const template = visible === 1 ? result.dataset.singular : result.dataset.template;
     result.textContent = template.replace('{count}', String(visible));
+    projectList.hidden = visible === 0;
+    fitProjectList();
+    projectList.scrollTop = 0;
     empty.hidden = visible !== 0;
   };
   filters.forEach(button => button.addEventListener('click', () => {
@@ -186,6 +215,9 @@
     search.focus();
   });
   controls.hidden = false;
+  fitProjectList();
+  window.addEventListener('resize', fitProjectList, { passive: true });
+  document.fonts?.ready.then(fitProjectList);
 
   // The page is composed and visible by default. Only the glyph field moves.
   const canvas = document.querySelector('#ascii-field');

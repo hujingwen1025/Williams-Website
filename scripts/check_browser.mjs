@@ -16,9 +16,18 @@ try {
   await page.setViewport({ width: 1440, height: 900 });
   await go();
   assert.equal(await count(), 28);
+  const preview = await page.$eval('.repo-grid', el => {
+    const rows = [...el.querySelectorAll('.repo-card')].slice(0, 7).map(card => card.getBoundingClientRect());
+    const bottom = el.getBoundingClientRect().top + el.clientTop + el.clientHeight;
+    return (bottom - rows[6].top) / rows[6].height;
+  });
+  assert(Math.abs(preview - 0.5) < 0.02, 'The catalog should peek halfway into its seventh row');
+  await page.$eval('.repo-grid', el => { el.scrollTop = 600; });
   assert.deepEqual(await page.$$eval('.feature-card h3', els => els.map(e => e.textContent)), ['Resona Lite', 'Cubers', 'CAICP Academy', 'Dorm Pass Manager']);
   await input('calendar'); assert.equal(await count(), 2);
+  assert(await page.$eval('.repo-grid', el => el.scrollTop === 0 && el.scrollHeight === el.clientHeight));
   await page.click('[data-filter="music"]'); assert.equal(await count(), 0);
+  assert.equal(await page.$eval('.repo-grid', el => el.hidden), true);
   assert.equal(await page.$eval('.empty-state', el => el.hidden), false);
   await page.click('.reset-search'); assert.equal(await count(), 28);
   assert.equal(await page.$eval('#project-search', el => el === document.activeElement), true);
@@ -28,6 +37,12 @@ try {
   await go('/#project-whaos');
   assert.equal(await page.$eval('#project-whaos details', el => el.open), true);
   assert.equal(await page.$eval('#project-whaos', el => el.hidden), false);
+  await page.waitForFunction(() => {
+    const list = document.querySelector('.repo-grid');
+    const summary = document.querySelector('#project-whaos summary').getBoundingClientRect();
+    const bounds = list.getBoundingClientRect();
+    return list.scrollTop > 0 && summary.top >= bounds.top && summary.bottom <= bounds.bottom;
+  });
   await page.click('[data-filter="music"]');
   await page.evaluate(() => { location.hash = 'about'; location.hash = 'project-whaos'; });
   await page.waitForFunction(() => !document.querySelector('#project-whaos').hidden);
@@ -52,6 +67,9 @@ try {
 
   await page.setViewport({ width: 375, height: 812 });
   await go();
+  assert(await page.$eval('.repo-grid', el => el.clientHeight > 0
+    && el.clientHeight <= innerHeight * 0.64 && el.scrollHeight > el.clientHeight
+    && el.clientWidth === el.scrollWidth));
   await page.click('.menu-toggle');
   assert.equal(await page.$eval('.menu-toggle', el => el.getAttribute('aria-expanded')), 'true');
   await page.keyboard.press('Escape');
