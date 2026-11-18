@@ -72,6 +72,90 @@
   const reset = document.querySelector('.reset-search');
   let category = 'all';
   const normalize = text => text.normalize('NFKC').toLocaleLowerCase();
+  const jump = document.querySelector('.jump-dialog');
+  const jumpTrigger = document.querySelector('.jump-trigger');
+  if (jump && typeof jump.showModal === 'function') {
+    const input = jump.querySelector('input');
+    const links = [...jump.querySelectorAll('.jump-results a')];
+    const emptyMessage = jump.querySelector('.jump-empty');
+    const mac = /Mac|iPhone|iPad/.test(navigator.platform);
+    jumpTrigger.querySelector('kbd').textContent = mac ? '⌘ K' : 'Ctrl K';
+    let focusBeforeJump;
+    let destination;
+    let visibleLinks = links;
+
+    const filterSections = () => {
+      const searchTerms = normalize(input.value.trim()).split(/\s+/);
+      visibleLinks = links.filter(link => {
+        const text = normalize(link.textContent + ' ' + link.hash.slice(1));
+        const matches = searchTerms.every(term => text.includes(term));
+        link.parentElement.hidden = !matches;
+        return matches;
+      });
+      emptyMessage.hidden = visibleLinks.length > 0;
+    };
+    const showJump = () => {
+      if (jump.open) return;
+      focusBeforeJump = document.activeElement;
+      closeMenu();
+      input.value = '';
+      filterSections();
+      jump.showModal();
+      input.focus();
+    };
+    jump.addEventListener('close', () => {
+      if (!destination) {
+        const focus = focusBeforeJump?.getClientRects().length ? focusBeforeJump : jumpTrigger;
+        focus.focus({ preventScroll: true });
+        return;
+      }
+      const target = destination;
+      destination = null;
+      const heading = target.querySelector('h1, h2, h3') || target;
+      heading.tabIndex = -1;
+      if (location.hash !== '#' + target.id) history.pushState(null, '', '#' + target.id);
+      heading.focus({ preventScroll: true });
+      target.scrollIntoView({ block: 'start' });
+    });
+    jumpTrigger.addEventListener('click', showJump);
+    jump.querySelector('.jump-close').addEventListener('click', () => jump.close());
+    input.addEventListener('input', filterSections);
+    jump.addEventListener('click', event => {
+      const link = event.target.closest('.jump-results a');
+      if (!link || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      destination = document.getElementById(link.hash.slice(1));
+      if (!destination) return;
+      event.preventDefault();
+      jump.close();
+    });
+    jump.addEventListener('keydown', event => {
+      if (event.isComposing) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        jump.close();
+        return;
+      }
+      if (!visibleLinks.length) return;
+      const current = visibleLinks.indexOf(document.activeElement);
+      if (event.key === 'Enter' && event.target === input) {
+        event.preventDefault();
+        visibleLinks[0].click();
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (event.target !== input && current === -1) return;
+        event.preventDefault();
+        const next = event.key === 'ArrowDown' ? current + 1 : current === -1 ? visibleLinks.length - 1 : current - 1;
+        (visibleLinks[next] || input).focus();
+      }
+    });
+    document.addEventListener('keydown', event => {
+      if (event.defaultPrevented || event.isComposing || event.altKey || event.shiftKey || !(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+      event.preventDefault();
+      if (jump.open) jump.close();
+      else showJump();
+    });
+    jumpTrigger.hidden = false;
+  }
+
   const searchText = cards.map(card => normalize(card.textContent));
   const filterProjects = () => {
     const query = normalize(search.value.trim());

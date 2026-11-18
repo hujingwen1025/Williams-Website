@@ -10,16 +10,85 @@
 <meta property="og:url" content="https://williamhu.tech/zh/"><meta property="og:site_name" content="William Hu"><meta property="og:image" content="https://williamhu.tech/assets/social-zh.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="我写代码、弹钢琴，也享受创造的过程。">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="William Hu 胡竞文 | 代码、音乐与好奇心"><meta name="twitter:description" content="认识 William Hu（胡竞文）：程序开发者、Exabyte Technologies 创始人、钢琴爱好者与创意协作者。探索他在 AI、音乐、学习及日常工具领域的项目。"><meta name="twitter:image" content="https://williamhu.tech/assets/social-zh.png">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="../assets/fonts/familjen-grotesk-1.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="../assets/style.css">
-<script src="../assets/site.js" defer></script>
+<script src="../assets/site.js" defer></script><script src="../assets/glyph-models.js" defer></script>
 </head><body data-language="zh">
 <a class="skip-link" href="#main">跳转到正文</a><div class="reading-progress" aria-hidden="true"><span></span></div>
 <header class="site-header"><div class="nav-shell container"><a class="wordmark" href="#top" aria-label="William Hu"><span class="brand-mark" aria-hidden="true">W.</span><span>William Hu</span></a>
 <nav id="navigation" class="navigation" aria-label="主导航"><a href="#about">关于我</a><a href="#work">作品</a><a href="#beyond">代码之外</a><a href="#connect">联系</a><a href="https://exabyte.org.cn/wecomadd">添加我的微信</a></nav>
-<div class="nav-actions"><a class="language-link" href="../" lang="en" hreflang="en" aria-label="阅读英文版网站"><span class="muted">EN</span><span aria-hidden="true"> / </span><span class="current">中</span></a><button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false" aria-label="展开导航" data-open-label="展开导航" data-close-label="收起导航" hidden><span></span><span></span></button></div></div></header>
+<div class="nav-actions"><button class="model-key jump-trigger" type="button" aria-haspopup="dialog" aria-controls="section-jump" aria-label="跳转到章节" aria-keyshortcuts="Control+K Meta+K" hidden><svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span>跳转</span><kbd aria-hidden="true">Ctrl K</kbd></button><a class="language-link" href="../" lang="en" hreflang="en" aria-label="阅读英文版网站"><span class="muted">EN</span><span aria-hidden="true"> / </span><span class="current">中</span></a><button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false" aria-label="展开导航" data-open-label="展开导航" data-close-label="收起导航" hidden><span></span><span></span></button></div></div></header>
+<dialog class="jump-dialog" id="section-jump" aria-labelledby="jump-heading">
+  <div class="jump-heading"><h2 id="jump-heading">跳转到章节</h2><button class="model-key jump-close" type="button">关闭</button></div>
+  <label class="search-field"><svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><span class="sr-only">搜索章节</span><input type="search" placeholder="搜索章节或项目" autocomplete="off" autofocus></label>
+  <p class="jump-empty" role="status" hidden>没有匹配的章节。</p>
+  <ul class="jump-results"><li><a href="#top">首页<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#about">关于我<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#technology">科技<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#music">音乐<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#cubing">魔方<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#work">精选项目<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#beyond">代码之外<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#exabyte">Exabyte<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#explore">项目目录<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#connect">联系<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-resona-lite">Resona Lite<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-cubers">Cubers<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-academy">CAICP Academy<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-dorm">Dorm Pass Manager<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li></ul>
+</dialog>
 <main id="main">
 <section class="hero" id="top" aria-labelledby="hero-heading"><div class="hero-field" aria-hidden="true"><canvas id="ascii-field"></canvas></div><div class="container hero-inner"><div class="intro-copy"><h1 id="hero-heading">你好，我是<br>William。</h1><p class="hero-description">我写代码、弹钢琴，也享受创造的过程。</p><div class="hero-links"><a class="button button-blue" href="#about">认识我</a><a class="button" href="#work">看看我的作品<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div></div></div></section>
 
 <section class="about-section section" id="about" aria-labelledby="about-heading"><div class="container about-grid"><div class="about-copy"><h2 id="about-heading">好奇心，不止一种模样。</h2><div class="about-prose"><p>我是 William Hu，中文名胡竞文，也叫 Jingwen Hu。我喜欢看一个小想法慢慢变成真正能使用、聆听或一起玩的东西。</p><p>代码之外，我喜欢弹钢琴、制作和剪辑视频、踢足球和打篮球，也喜欢与朋友下国际象棋、玩 UNO 和桌游。我享受探索的过程，尤其是和别人一起探索。</p></div></div><aside class="toolkit"><h3>我的常用工具</h3><div class="primary-language"><span class="language-code">Py</span><div><p>Python</p><p class="muted">我最常用的开发语言</p></div></div><p class="also-label">也使用这些语言</p><ul class="language-tags"><li>JavaScript</li><li>Swift</li><li>C++</li><li>AppleScript</li><li>HTML & CSS</li></ul></aside></div></section>
+<section class="topic-section" id="technology" aria-labelledby="technology-heading">
+  <div class="container topic-grid">
+    <div class="topic-copy"><h2 id="technology-heading">科技</h2><p class="topic-lead">我喜欢弄清事物是如何运作的，再写一些软件，让它们用起来更顺手。</p>
+      <p>我的项目包括学习工具和解决日常问题的软件。试试这块电路板，看看信号怎样从芯片传到边缘的触点。</p><ul class="topic-links"><li><a href="#project-academy">CAICP Academy<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-dorm">Dorm Pass Manager<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li></ul></div>
+    <figure class="topic-model" data-model="technology">
+      <div class="model-stage"><pre class="model-fallback" aria-hidden="true">         .----------------------.
+        / +++==[######]==+++   /|
+       / ::: /@:::::@/  ::   / |
+      / +++ /@:::::@/==+++  /  /
+     /=====================/  /
+     &#x27;---------------------&#x27; /</pre><canvas class="model-canvas" aria-hidden="true" hidden></canvas></div>
+      <div class="model-controls" hidden>
+        <div class="model-actions" role="group" aria-label="模型操作"><button type="button" class="model-key" data-action="signal" data-complete="信号已到达触点。">发送信号</button></div>
+        <div class="model-view" role="group" aria-label="视角控制"><div class="model-directions"><button type="button" class="model-key" data-action="left" aria-label="向左旋转">←</button><button type="button" class="model-key" data-action="right" aria-label="向右旋转">→</button><button type="button" class="model-key" data-action="up" aria-label="向上旋转">↑</button><button type="button" class="model-key" data-action="down" aria-label="向下旋转">↓</button></div><button type="button" class="model-key" data-action="view">重置视角</button><button type="button" class="model-key" data-action="motion" data-pause="暂停动效" data-play="播放动效">暂停动效</button></div>
+        <p class="sr-only" role="status"></p>
+      </div>
+      <figcaption class="model-heading"><span>电路板</span><span class="model-hint" hidden>拖动旋转</span></figcaption>
+    </figure>
+  </div>
+</section>
+<section class="topic-section" id="music" aria-labelledby="music-heading">
+  <div class="container topic-grid">
+    <div class="topic-copy"><h2 id="music-heading">音乐</h2><p class="topic-lead">我喜欢弹钢琴、听音乐，也喜欢探索声音与代码碰到一起会发生什么。</p>
+      <p>这份好奇心也延伸到了 Resona Lite 和 Rhythm Cook。切换琴键上方的节奏，看看重音的位置变化会带来怎样的效果。</p><ul class="topic-links"><li><a href="#project-resona-lite">Resona Lite<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li><li><a href="#project-rhythm">Rhythm Cook<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li></ul></div>
+    <figure class="topic-model" data-model="music">
+      <div class="model-stage"><pre class="model-fallback" aria-hidden="true">           ::      ##
+       +++:  :++++#  #++   ++
+      /|##||##||#|||##||#|/|
+     / |##||##||#|||##||#|/ |
+    /__|__||__||_|||__||_|/ /
+    &#x27;=====================&#x27;</pre><canvas class="model-canvas" aria-hidden="true" hidden></canvas></div>
+      <div class="model-controls" hidden>
+        <div class="model-actions" role="group" aria-label="模型操作"><button type="button" class="model-key" data-action="steady" aria-pressed="true">均匀节拍</button><button type="button" class="model-key" data-action="syncopated" aria-pressed="false">切分节奏</button></div>
+        <div class="model-view" role="group" aria-label="视角控制"><div class="model-directions"><button type="button" class="model-key" data-action="left" aria-label="向左旋转">←</button><button type="button" class="model-key" data-action="right" aria-label="向右旋转">→</button><button type="button" class="model-key" data-action="up" aria-label="向上旋转">↑</button><button type="button" class="model-key" data-action="down" aria-label="向下旋转">↓</button></div><button type="button" class="model-key" data-action="view">重置视角</button><button type="button" class="model-key" data-action="motion" data-pause="暂停动效" data-play="播放动效">暂停动效</button></div>
+        <p class="sr-only" role="status"></p>
+      </div>
+      <figcaption class="model-heading"><span>钢琴与波形</span><span class="model-hint" hidden>拖动旋转</span></figcaption>
+    </figure>
+  </div>
+</section>
+<section class="topic-section" id="cubing" aria-labelledby="cubing-heading">
+  <div class="container topic-grid">
+    <div class="topic-copy"><h2 id="cubing-heading">魔方</h2><p class="topic-lead">玩魔方时，我喜欢在脑海里把一个难题拆成一次次转动。</p>
+      <p>Cubers 把这种思路做成了分步课程和交互练习。在这里，可以转动顶层，再旋转整个魔方，看看方块移到了哪里。</p><ul class="topic-links"><li><a href="#project-cubers">Cubers<svg class="icon " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li></ul></div>
+    <figure class="topic-model" data-model="cubing">
+      <div class="model-stage"><pre class="model-fallback" aria-hidden="true">            +++
+         +++:::+++
+      +++:::+++:::+++
+      # | # | # | : |
+      ==+===+===+---+
+      # | # | # | : |
+      ==+===+===+---+
+      # | # | # | : |
+      &#x27;---------+---&#x27;</pre><canvas class="model-canvas" aria-hidden="true" hidden></canvas></div>
+      <div class="model-controls" hidden>
+        <div class="model-actions" role="group" aria-label="模型操作"><button type="button" class="model-key" data-action="turn" data-complete="顶层已转动。">转动顶层</button><button type="button" class="model-key" data-action="cube" data-complete="魔方已重置。">重置魔方</button></div>
+        <div class="model-view" role="group" aria-label="视角控制"><div class="model-directions"><button type="button" class="model-key" data-action="left" aria-label="向左旋转">←</button><button type="button" class="model-key" data-action="right" aria-label="向右旋转">→</button><button type="button" class="model-key" data-action="up" aria-label="向上旋转">↑</button><button type="button" class="model-key" data-action="down" aria-label="向下旋转">↓</button></div><button type="button" class="model-key" data-action="view">重置视角</button><button type="button" class="model-key" data-action="motion" data-pause="暂停动效" data-play="播放动效">暂停动效</button></div>
+        <p class="sr-only" role="status"></p>
+      </div>
+      <figcaption class="model-heading"><span>三阶魔方</span><span class="model-hint" hidden>拖动旋转</span></figcaption>
+    </figure>
+  </div>
+</section>
 <section class="work-section section" id="work" aria-labelledby="work-heading"><div class="container"><div class="section-heading split-heading"><h2 id="work-heading">一些做出来的想法。</h2><p>音乐、学习，还有实用的日常系统。一些个人与合作作品。</p></div><div class="feature-grid"><article class="feature-card" id="project-resona-lite">
       <figure class="project-figure"><div class="project-visual portrait-pair"><img src="../assets/projects/resona-home.png" width="390" height="844" alt="Resona Lite: 首页与和弦控制，网页预览" loading="lazy" decoding="async"><img src="../assets/projects/resona-chords.png" width="390" height="844" alt="" loading="lazy" decoding="async"></div><figcaption>首页与和弦控制，网页预览</figcaption></figure>
       <div class="feature-copy"><h3>Resona Lite</h3><p>给自己一点放松的空间。在设备上生成环境音乐，陪伴休息、专注与安静时光。</p><p class="project-role">Exabyte Technologies 项目</p>

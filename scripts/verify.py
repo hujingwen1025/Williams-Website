@@ -55,7 +55,9 @@ def verify():
         check(len(doc.classified("interest-card")) == 4, "Incomplete interests")
         check([a['id'] for a in doc.classified('feature-card')] == ['project-resona-lite', 'project-cubers', 'project-academy', 'project-dorm'], 'Incorrect flagship lineup')
         section_ids = [a['id'] for a in doc.attrs('section')]
-        check(section_ids == ['top', 'about', 'work', 'beyond', 'exabyte', 'explore', 'connect'], 'The personal-first reading order changed')
+        check(section_ids == ['top', 'about', 'technology', 'music', 'cubing', 'work', 'beyond', 'exabyte', 'explore', 'connect'], 'Incorrect topic or section order')
+        check([a['data-model'] for a in doc.classified('topic-model')] == ['technology', 'music', 'cubing'], 'Missing character model')
+        check(len(doc.classified('model-fallback')) == 3 and all('hidden' in a for a in doc.classified('model-controls')), 'Models need static art and progressive controls')
         for anchor in ['project-resona', 'project-whaos', 'project-rhythm', 'project-sonora', 'project-academy', 'project-dorm']:
             check(anchor in ids, f'Lost original project anchor: {anchor}')
         for interest in ['interest-piano', 'interest-sports', 'interest-video', 'interest-games']:
@@ -116,7 +118,7 @@ def verify():
         data = (PUBLIC / "assets" / name).read_bytes()
         check(data[:8] == b"\x89PNG\r\n\x1a\n", "Invalid social PNG")
         check(struct.unpack(">II", data[16:24]) == (1200, 630), "Incorrect social image dimensions")
-    allowed = {"index.html", "zh/index.html", "robots.txt", "sitemap.xml", "assets/style.css", "assets/site.js", "assets/favicon.svg", "assets/social.png", "assets/social-zh.png"}
+    allowed = {"index.html", "zh/index.html", "robots.txt", "sitemap.xml", "assets/style.css", "assets/site.js", "assets/glyph-models.js", "assets/favicon.svg", "assets/social.png", "assets/social-zh.png"}
     allowed.update('assets/' + name for name in ['tokens.css', 'base.css', 'fonts.css'])
     allowed.update('assets/fonts/' + name for name in ['familjen-grotesk-0.ttf', 'familjen-grotesk-1.ttf', 'ibm-plex-sans-0.ttf', 'ibm-plex-sans-1.ttf', 'jetbrains-mono-0.ttf', 'familjengrotesk-OFL.txt', 'ibmplexsans-OFL.txt', 'jetbrainsmono-OFL.txt'])
     allowed.update('assets/projects/' + name for name in ['resona-home.png', 'resona-chords.png', 'cubers-learn.jpg', 'cubers-pathways.jpg', 'academy-desktop.png', 'dorm-desktop.png'])
@@ -160,7 +162,7 @@ def verify():
     check(not any(p.is_symlink() for p in PUBLIC.rglob("*")), "Publishable directory must not link to private/source files")
     css = (PUBLIC / "assets/style.css").read_text()
     check("prefers-reduced-motion:reduce" in css and "focus-visible" in css, "Missing accessibility styles")
-    js = (PUBLIC / "assets/site.js").read_text()
+    js = ''.join((PUBLIC / 'assets' / name).read_text() for name in ['site.js', 'glyph-models.js'])
     check(not re.search(r"\b(fetch|XMLHttpRequest|WebSocket|localStorage|sessionStorage)\b", js), "Unexpected network or persistence API")
     print("PASS language parity, sitemap, sharing images, public-file allowlist, local runtime")
 

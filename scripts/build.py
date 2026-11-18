@@ -256,6 +256,97 @@ def feature(p, lang, prefix):
       <details class="project-details"><summary>{COPY['details'][lang]}</summary><div class="detail-body">{project_details(p, lang)}</div></details></div></article>'''
 
 
+TOPICS = (
+    ("technology", L("Technology", "科技"), L("I like figuring out how things work, then writing software that makes them a little easier to use.", "我喜欢弄清事物是如何运作的，再写一些软件，让它们用起来更顺手。"),
+     L("My projects include learning tools and software for everyday workflows. The circuit board here lets you follow a signal from the chip to a contact at the edge.", "我的项目包括学习工具和解决日常问题的软件。试试这块电路板，看看信号怎样从芯片传到边缘的触点。"),
+     L("Circuit board", "电路板"), (("project-academy", "CAICP Academy"), ("project-dorm", "Dorm Pass Manager")),
+     """         .----------------------.
+        / +++==[######]==+++   /|
+       / ::: /@:::::@/  ::   / |
+      / +++ /@:::::@/==+++  /  /
+     /=====================/  /
+     '---------------------' /"""),
+    ("music", L("Music", "音乐"), L("I play piano, listen to music, and explore what happens when sound and code come together.", "我喜欢弹钢琴、听音乐，也喜欢探索声音与代码碰到一起会发生什么。"),
+     L("That curiosity carries into Resona Lite and Rhythm Cook. Switch the pattern above the keys to see how moving the accents changes the rhythm.", "这份好奇心也延伸到了 Resona Lite 和 Rhythm Cook。切换琴键上方的节奏，看看重音的位置变化会带来怎样的效果。"),
+     L("Piano and waveform", "钢琴与波形"), (("project-resona-lite", "Resona Lite"), ("project-rhythm", "Rhythm Cook")),
+     """           ::      ##
+       +++:  :++++#  #++   ++
+      /|##||##||#|||##||#|/|
+     / |##||##||#|||##||#|/ |
+    /__|__||__||_|||__||_|/ /
+    '====================='"""),
+    ("cubing", L("Cubing", "魔方"), L("Cubing is a chance to take a puzzle apart in my head, one turn at a time.", "玩魔方时，我喜欢在脑海里把一个难题拆成一次次转动。"),
+     L("Cubers brings that idea into guided lessons and interactive practice. Here, turn the top layer and rotate the whole cube to see where the pieces went.", "Cubers 把这种思路做成了分步课程和交互练习。在这里，可以转动顶层，再旋转整个魔方，看看方块移到了哪里。"),
+     L("3×3 puzzle cube", "三阶魔方"), (("project-cubers", "Cubers"),),
+     """            +++
+         +++:::+++
+      +++:::+++:::+++
+      # | # | # | : |
+      ==+===+===+---+
+      # | # | # | : |
+      ==+===+===+---+
+      # | # | # | : |
+      '---------+---'"""),
+)
+
+
+def topic_sections(lang):
+    def t(en, zh):
+        return zh if lang == "zh" else en
+
+    def button(action, label, extra=""):
+        return f'<button type="button" class="model-key" data-action="{action}"{extra}>{label}</button>'
+
+    rotate = ''.join(button(action, glyph, f' aria-label="{label}"') for action, glyph, label in (
+        ('left', '←', t('Rotate left', '向左旋转')), ('right', '→', t('Rotate right', '向右旋转')),
+        ('up', '↑', t('Rotate up', '向上旋转')), ('down', '↓', t('Rotate down', '向下旋转')),
+    ))
+    view = button('view', t('Reset view', '重置视角'))
+    motion = button('motion', t('Pause motion', '暂停动效'),
+                    f' data-pause="{t("Pause motion", "暂停动效")}" data-play="{t("Play motion", "播放动效")}"')
+    actions = {
+        'technology': button('signal', t('Send a signal', '发送信号'), f' data-complete="{t("Signal reached the contact.", "信号已到达触点。")}"'),
+        'music': button('steady', t('Steady', '均匀节拍'), ' aria-pressed="true"') + button('syncopated', t('Syncopated', '切分节奏'), ' aria-pressed="false"'),
+        'cubing': button('turn', t('Turn top layer', '转动顶层'), f' data-complete="{t("Top layer turned.", "顶层已转动。")}"') + button('cube', t('Reset cube', '重置魔方'), f' data-complete="{t("Cube reset.", "魔方已重置。")}"'),
+    }
+    sections = []
+    for key, title, intro, detail, caption, destinations, fallback in TOPICS:
+        links = ''.join(f'<li><a href="#{anchor}">{name}{icon("arrow")}</a></li>' for anchor, name in destinations)
+        sections.append(f'''<section class="topic-section" id="{key}" aria-labelledby="{key}-heading">
+  <div class="container topic-grid">
+    <div class="topic-copy"><h2 id="{key}-heading">{title[lang]}</h2><p class="topic-lead">{intro[lang]}</p>
+      <p>{detail[lang]}</p><ul class="topic-links">{links}</ul></div>
+    <figure class="topic-model" data-model="{key}">
+      <div class="model-stage"><pre class="model-fallback" aria-hidden="true">{escape(fallback)}</pre><canvas class="model-canvas" aria-hidden="true" hidden></canvas></div>
+      <div class="model-controls" hidden>
+        <div class="model-actions" role="group" aria-label="{t('Model actions', '模型操作')}">{actions[key]}</div>
+        <div class="model-view" role="group" aria-label="{t('View controls', '视角控制')}"><div class="model-directions">{rotate}</div>{view}{motion}</div>
+        <p class="sr-only" role="status"></p>
+      </div>
+      <figcaption class="model-heading"><span>{caption[lang]}</span><span class="model-hint" hidden>{t('Drag to rotate', '拖动旋转')}</span></figcaption>
+    </figure>
+  </div>
+</section>''')
+    return '\n'.join(sections)
+
+
+def jump_dialog(lang):
+    zh = lang == 'zh'
+    labels = L(['Home', 'About', 'Selected projects', 'Beyond code', 'Exabyte', 'Project catalog', 'Contact'],
+               ['首页', '关于我', '精选项目', '代码之外', 'Exabyte', '项目目录', '联系'])
+    sections = list(zip(['top', 'about', 'work', 'beyond', 'exabyte', 'explore', 'connect'], labels[lang]))
+    sections[2:2] = [(key, title[lang]) for key, title, *_ in TOPICS]
+    sections.extend((f'project-{p["id"]}', p['name']) for p in FEATURES)
+    links = ''.join(f'<li><a href="#{anchor}">{escape(title)}{icon("arrow")}</a></li>' for anchor, title in sections)
+    title = '跳转到章节' if zh else 'Jump to section'
+    return f'''<dialog class="jump-dialog" id="section-jump" aria-labelledby="jump-heading">
+  <div class="jump-heading"><h2 id="jump-heading">{title}</h2><button class="model-key jump-close" type="button">{'关闭' if zh else 'Close'}</button></div>
+  <label class="search-field">{icon('search')}<span class="sr-only">{'搜索章节' if zh else 'Search sections'}</span><input type="search" placeholder="{'搜索章节或项目' if zh else 'Search sections or projects'}" autocomplete="off" autofocus></label>
+  <p class="jump-empty" role="status" hidden>{'没有匹配的章节。' if zh else 'No matching sections.'}</p>
+  <ul class="jump-results">{links}</ul>
+</dialog>'''
+
+
 def page(lang):
     c = {key: value[lang] for key, value in COPY.items()}
     zh = lang == "zh"
@@ -281,17 +372,19 @@ def page(lang):
 <meta property="og:url" content="{SITE_URL}/{'zh/' if zh else ''}"><meta property="og:site_name" content="William Hu"><meta property="og:image" content="{SITE_URL}/assets/social{'-zh' if zh else ''}.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="{escape(c['intro'], quote=True)}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{c['title']}"><meta name="twitter:description" content="{escape(c['description'], quote=True)}"><meta name="twitter:image" content="{SITE_URL}/assets/social{'-zh' if zh else ''}.png">
 <link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="{prefix}assets/fonts/familjen-grotesk-1.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="{prefix}assets/style.css">
-<script src="{prefix}assets/site.js" defer></script>
+<script src="{prefix}assets/site.js" defer></script><script src="{prefix}assets/glyph-models.js" defer></script>
 </head><body data-language="{lang}">
 <a class="skip-link" href="#main">{c['skip']}</a><div class="reading-progress" aria-hidden="true"><span></span></div>
 <header class="site-header"><div class="nav-shell container"><a class="wordmark" href="#top" aria-label="William Hu"><span class="brand-mark" aria-hidden="true">W.</span><span>William Hu</span></a>
 <nav id="navigation" class="navigation" aria-label="{'主导航' if zh else 'Main navigation'}">{nav}</nav>
-<div class="nav-actions"><a class="language-link" href="{other}" lang="{'en' if zh else 'zh-Hans'}" hreflang="{'en' if zh else 'zh-Hans'}" aria-label="{c['lang']}"><span class="{'muted' if zh else 'current'}">EN</span><span aria-hidden="true"> / </span><span class="{'current' if zh else 'muted'}">中</span></a><button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false" aria-label="{c['menu']}" data-open-label="{c['menu']}" data-close-label="{c['close']}" hidden><span></span><span></span></button></div></div></header>
+<div class="nav-actions"><button class="model-key jump-trigger" type="button" aria-haspopup="dialog" aria-controls="section-jump" aria-label="{'跳转到章节' if zh else 'Jump to section'}" aria-keyshortcuts="Control+K Meta+K" hidden>{icon('search')}<span>{'跳转' if zh else 'Jump'}</span><kbd aria-hidden="true">Ctrl K</kbd></button><a class="language-link" href="{other}" lang="{'en' if zh else 'zh-Hans'}" hreflang="{'en' if zh else 'zh-Hans'}" aria-label="{c['lang']}"><span class="{'muted' if zh else 'current'}">EN</span><span aria-hidden="true"> / </span><span class="{'current' if zh else 'muted'}">中</span></a><button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false" aria-label="{c['menu']}" data-open-label="{c['menu']}" data-close-label="{c['close']}" hidden><span></span><span></span></button></div></div></header>
+{jump_dialog(lang)}
 <main id="main">
 <section class="hero" id="top" aria-labelledby="hero-heading"><div class="hero-field" aria-hidden="true"><canvas id="ascii-field"></canvas></div><div class="container hero-inner"><div class="intro-copy"><h1 id="hero-heading">{'你好，我是<br>William。' if zh else 'Hi, I’m<br>William.'}</h1><p class="hero-description">{c['intro']}</p><div class="hero-links"><a class="button button-blue" href="#about">{c['about_cta']}</a><a class="button" href="#work">{c['work_cta']}{icon('arrow')}</a></div></div></div></section>
 '''
     body = f'''
 <section class="about-section section" id="about" aria-labelledby="about-heading"><div class="container about-grid"><div class="about-copy"><h2 id="about-heading">{c['about_title']}</h2><div class="about-prose"><p>{c['about_text']}</p><p>{c['about_text2']}</p></div></div><aside class="toolkit"><h3>{c['skill_title']}</h3><div class="primary-language"><span class="language-code">Py</span><div><p>Python</p><p class="muted">{c['primary']}</p></div></div><p class="also-label">{c['also']}</p><ul class="language-tags">{''.join(f'<li>{x}</li>' for x in ['JavaScript', 'Swift', 'C++', 'AppleScript', 'HTML & CSS'])}</ul></aside></div></section>
+{topic_sections(lang)}
 <section class="work-section section" id="work" aria-labelledby="work-heading"><div class="container"><div class="section-heading split-heading"><h2 id="work-heading">{c['work_title']}</h2><p>{c['work_intro']}</p></div><div class="feature-grid">{''.join(feature(p, lang, prefix) for p in FEATURES)}</div><div class="section-tail"><p>{c['music_note']}</p><a class="text-link" href="#explore">{c['all_projects']}{icon('arrow')}</a></div></div></section>
 <section class="life-section section" id="beyond" aria-labelledby="life-heading"><div class="container"><div class="section-heading split-heading"><h2 id="life-heading">{c['life_title']}</h2><p>{c['life_intro']}</p></div><div class="interests-grid">{life}</div></div></section>
 <section class="organization-section section" id="exabyte" aria-labelledby="org-heading"><div class="container org-grid"><div><h2 id="org-heading">{c['org_title']}</h2><p class="organization-name">Exabyte Technologies</p></div><div class="org-copy"><p>{c['org_text']}</p><p>{c['org_text2']}</p><div class="org-links">{link('https://exabyte.org.cn', c['org_visit'])}{link('https://github.com/Exabyte-Technologies', c['org_github'])}</div></div></div></section>

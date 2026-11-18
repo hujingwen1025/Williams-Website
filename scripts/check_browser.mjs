@@ -72,6 +72,73 @@ try {
   assert.equal(await page.$eval('#ascii-field', el => el.toDataURL()), still);
   console.log('PASS mobile menu, Escape/focus, section-preserving language switch, and reduced-motion still field');
 
+  const modelImage = topic => page.$eval(`#${topic} .model-canvas`, canvas => canvas.toDataURL());
+  const modelAction = async (topic, action) => {
+    await page.$eval('#' + topic, el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+    await page.click(`#${topic} [data-action="${action}"]`);
+  };
+  await page.setViewport({ width: 1440, height: 900 });
+  await go('/');
+  await page.waitForSelector('.model-canvas:not([hidden])');
+  for (const [topic, right] of [['technology', true], ['music', false], ['cubing', true]]) {
+    const placement = await page.$eval('#' + topic, section => {
+      const model = section.querySelector('figure');
+      const topicCopy = section.querySelector('.topic-copy');
+      const grid = section.querySelector('.topic-grid');
+      const pin = parseFloat(getComputedStyle(model).top);
+      const start = grid.getBoundingClientRect().top + scrollY - pin;
+      const measure = y => { scrollTo({ top: y, behavior: 'instant' }); return model.getBoundingClientRect().top; };
+      return { left: model.getBoundingClientRect().left, copy: topicCopy.getBoundingClientRect().left,
+        first: measure(start + 40), second: measure(start + 100), released: measure(start + grid.offsetHeight) };
+    });
+    assert.equal(placement.left > placement.copy, right);
+    assert(Math.abs(placement.first - placement.second) < 2 && placement.released < placement.second - 30, topic + ' should pin and release');
+    const initial = await modelImage(topic);
+    await modelAction(topic, 'left');
+    assert.notEqual(await modelImage(topic), initial);
+    await modelAction(topic, 'view');
+    assert.equal(await modelImage(topic), initial);
+  }
+  const cubeStart = await modelImage('cubing');
+  await modelAction('cubing', 'turn');
+  assert.notEqual(await modelImage('cubing'), cubeStart);
+  const turned = await modelImage('cubing');
+  await modelAction('cubing', 'right');
+  await modelAction('cubing', 'view');
+  assert.equal(await modelImage('cubing'), turned, 'A view reset must keep the applied turn');
+  for (let i = 0; i < 3; i++) await modelAction('cubing', 'turn');
+  assert.equal(await modelImage('cubing'), cubeStart, 'Four turns must restore the puzzle');
+  await modelAction('cubing', 'turn');
+  await modelAction('cubing', 'cube');
+  assert.equal(await modelImage('cubing'), cubeStart);
+  const steady = await modelImage('music');
+  await modelAction('music', 'syncopated');
+  assert.notEqual(await modelImage('music'), steady);
+  assert.equal(await page.$eval('#music [data-action="syncopated"]', el => el.getAttribute('aria-pressed')), 'true');
+  const unlit = await modelImage('technology');
+  await modelAction('technology', 'signal');
+  assert.notEqual(await modelImage('technology'), unlit);
+  await page.waitForFunction(() => document.querySelector('#technology [role="status"]').textContent.includes('contact'));
+  console.log('PASS desktop pinning and alternation, all model actions, rotate/reset, and four true cube turns');
+
+  await page.keyboard.down('Control');
+  await page.keyboard.press('k');
+  await page.keyboard.up('Control');
+  await page.waitForSelector('#section-jump[open]');
+  await page.type('#section-jump input', 'missing topic');
+  assert.equal(await page.$eval('.jump-empty', el => el.hidden), false);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#section-jump').open && document.activeElement.matches('#technology [data-action="signal"]'));
+  await page.click('.jump-trigger');
+  await page.type('#section-jump input', 'music');
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => document.activeElement.hash), '#music');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => location.hash === '#music' && document.activeElement.id === 'music-heading');
+  await page.click('.language-link');
+  await page.waitForFunction(() => document.documentElement.lang === 'zh-Hans' && location.hash === '#music');
+  console.log('PASS jump shortcut, search, empty state, Escape, arrows, Enter, and topic language anchor');
+
   const fallback = await browser.newPage();
   fallback.on('pageerror', error => errors.push(error.message));
   await fallback.evaluateOnNewDocument(() => { delete window.IntersectionObserver; });
@@ -83,6 +150,8 @@ try {
   await plain.goto(base + '/zh/', { waitUntil: 'networkidle0' });
   assert.equal(await plain.$$eval('.repo-card', els => els.filter(el => !el.hidden).length), 28);
   assert.equal(await plain.$eval('.directory-controls', el => getComputedStyle(el).display), 'none');
+  assert.equal(await plain.$$eval('.model-fallback:not([hidden])', els => els.length), 3);
+  assert.equal(await plain.$$eval('.model-controls:not([hidden]), .jump-trigger:not([hidden])', els => els.length), 0);
   await plain.click('#project-whaos summary');
   assert.equal(await plain.$eval('#project-whaos details', el => el.open), true);
   await plain.close();
