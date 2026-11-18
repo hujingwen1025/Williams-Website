@@ -7,6 +7,7 @@
   const QUARTER = Math.PI / 2;
   const FULL_TURN = 4 * QUARTER;
   const INTRO_SPIN_DURATION = 3000;
+  const INTRO_GROW_DURATION = 450;
   const INTRO_VISIBLE_FRACTION = 0.5;
   const ACTIVE_VISIBLE_FRACTION = 0.2;
   const AMBIENT_LIMIT = 3800;
@@ -269,6 +270,21 @@
   function renderer(canvas, ctx, model) {
     const cellWidth = CELL_WIDTH, cellHeight = CELL_HEIGHT;
     let cols, rows, width, height, depth, tones, glyphs, lit;
+    let entranceScale, restingScale;
+    const restingBounds = model.bounds(0, { turns: 0, turn: null });
+
+    function fitScale(bounds, yawSin, yawCos, pitchSin, pitchCos) {
+      let scale = Math.min(width * 1.1, height * 1.25) / model.size;
+      for (const [x, y, z] of bounds) {
+        const rx = x * yawCos + z * yawSin;
+        const rz = z * yawCos - x * yawSin;
+        const ry = y * pitchCos - rz * pitchSin;
+        const perspective = 8 / (8 - y * pitchSin - rz * pitchCos);
+        scale = Math.min(scale, (width / 2 - cellWidth) / Math.abs(rx * perspective),
+          (height / 2 - cellHeight) / Math.abs(ry * perspective));
+      }
+      return scale;
+    }
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
@@ -284,6 +300,15 @@
       tones = new Uint8Array(cols * rows);
       glyphs = new Array(cols * rows);
       lit = new Uint8Array(cols * rows);
+      const pitchSin = Math.sin(model.pitch), pitchCos = Math.cos(model.pitch);
+      restingScale = fitScale(restingBounds, Math.sin(model.yaw), Math.cos(model.yaw), pitchSin, pitchCos);
+      // Find one scale that fits every heading, with a small margin between the samples.
+      let turnScale = restingScale;
+      for (let step = 0; step < 72; step++) {
+        const yaw = model.yaw + step * FULL_TURN / 72;
+        turnScale = Math.min(turnScale, fitScale(restingBounds, Math.sin(yaw), Math.cos(yaw), pitchSin, pitchCos));
+      }
+      entranceScale = Math.min(restingScale * 0.94, turnScale * 0.99);
     }
 
     function draw(time, state) {
@@ -292,16 +317,9 @@
       depth.fill(-Infinity);
       const yawSin = Math.sin(state.yaw), yawCos = Math.cos(state.yaw);
       const pitchSin = Math.sin(state.pitch), pitchCos = Math.cos(state.pitch);
-      let scale = Math.min(width * 1.1, height * 1.25) / model.size;
-      // Fit the rotated silhouette while keeping the glyphs themselves the same size.
-      for (const [x, y, z] of model.bounds(time, state)) {
-        const rx = x * yawCos + z * yawSin;
-        const rz = z * yawCos - x * yawSin;
-        const ry = y * pitchCos - rz * pitchSin;
-        const perspective = 8 / (8 - y * pitchSin - rz * pitchCos);
-        scale = Math.min(scale, (width / 2 - CELL_WIDTH) / Math.abs(rx * perspective),
-          (height / 2 - CELL_HEIGHT) / Math.abs(ry * perspective));
-      }
+      const scale = state.introGrowth === null
+        ? fitScale(model.bounds(time, state), yawSin, yawCos, pitchSin, pitchCos)
+        : entranceScale + (restingScale - entranceScale) * state.introGrowth;
       const ox = (width - cols * cellWidth) / 2;
       const oy = (height - rows * cellHeight) / 2;
       ctx.font = `${GLYPH_SIZE}px ${font || 'monospace'}`;
@@ -374,13 +392,14 @@
     const stage = figure.querySelector('.model-stage');
     const status = figure.querySelector('[role="status"]');
     const view = renderer(canvas, ctx, model);
+    let introActive = !motion.matches && 'IntersectionObserver' in window;
     const state = {
       yaw: model.yaw, pitch: model.pitch, ambient: 0, pattern: 'steady',
       signal: null, signalDone: false, turns: 0, turn: null,
+      introGrowth: introActive ? 0 : null,
     };
     let inView = false;
     let introInView = false;
-    let introSpin = true;
     let introElapsed = 0;
     let drag = null;
     let announceFrame = 0;
@@ -390,8 +409,12 @@
       announceFrame = requestAnimationFrame(() => { status.textContent = message; });
     };
     const canAnimate = () => !motion.matches && inView && !document.hidden;
-    const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || introSpin && introInView
+    const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || introActive && introInView
       || state.turn || state.signal !== null && !state.signalDone);
+    function stopIntro() {
+      introActive = false;
+      state.introGrowth = null;
+    }
     const finishTurn = () => {
       if (!state.turn) return;
       state.turns = (state.turns + 1) % 4;
@@ -416,12 +439,18 @@
     function update(now, step) {
       if (!running()) return;
       state.ambient = Math.min(AMBIENT_LIMIT, state.ambient + step);
-      if (introSpin && introInView) {
+      if (introActive && introInView) {
         introElapsed += step;
-        const progress = Math.min(1, introElapsed / INTRO_SPIN_DURATION);
-        introSpin = progress < 1;
-        const eased = progress - 0.85 * Math.sin(FULL_TURN * progress) / FULL_TURN;
-        state.yaw = introSpin ? model.yaw + FULL_TURN * eased : model.yaw;
+        if (introElapsed < INTRO_SPIN_DURATION) {
+          const progress = introElapsed / INTRO_SPIN_DURATION;
+          const eased = progress - 0.85 * Math.sin(FULL_TURN * progress) / FULL_TURN;
+          state.yaw = model.yaw + FULL_TURN * eased;
+        } else {
+          state.yaw = model.yaw;
+          const progress = Math.min(1, (introElapsed - INTRO_SPIN_DURATION) / INTRO_GROW_DURATION);
+          state.introGrowth = progress * progress * (3 - 2 * progress);
+          if (progress === 1) stopIntro();
+        }
       }
       if (state.turn && now - state.turn.start >= 410) finishTurn();
       if (state.signal !== null && now - state.signal >= 960) finishSignal();
@@ -429,14 +458,14 @@
     }
 
     function move(dx, dy) {
-      introSpin = false;
+      stopIntro();
       state.yaw = (state.yaw + dx) % FULL_TURN;
       state.pitch = clamp(state.pitch + dy, -Math.PI, Math.PI);
       draw(performance.now());
     }
 
     function activate() {
-      introSpin = false;
+      stopIntro();
       const now = performance.now();
       switch (figure.dataset.model) {
         case 'technology':
@@ -460,7 +489,7 @@
 
     stage.addEventListener('pointerdown', event => {
       if (!event.isPrimary || event.button !== 0) return;
-      introSpin = false;
+      stopIntro();
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
       stage.setPointerCapture(event.pointerId);
     });
@@ -491,7 +520,7 @@
         case 'ArrowUp': move(0, 0.24); break;
         case 'ArrowDown': move(0, -0.24); break;
         case 'Home':
-          introSpin = false;
+          stopIntro();
           state.yaw = model.yaw;
           state.pitch = model.pitch;
           draw(performance.now());
@@ -523,7 +552,7 @@
     else window.addEventListener('resize', resize, { passive: true });
     document.fonts?.ready.then(resize);
     const motionChanged = () => {
-      if (introInView && motion.matches) introSpin = false;
+      if (motion.matches) stopIntro();
       if (!canAnimate()) settle();
       schedule();
     };
@@ -536,7 +565,6 @@
       show(fraction) {
         inView = fraction >= ACTIVE_VISIBLE_FRACTION;
         introInView = fraction >= INTRO_VISIBLE_FRACTION;
-        if (introInView && motion.matches) introSpin = false;
         if (!inView) settle();
         schedule();
       },
