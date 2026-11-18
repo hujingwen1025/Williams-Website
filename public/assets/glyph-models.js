@@ -8,6 +8,8 @@
   const FULL_TURN = 4 * QUARTER;
   const INTRO_SPIN_DURATION = 3000;
   const INTRO_GROW_DURATION = 450;
+  const JOURNEY_TURN_DURATION = 56000;
+  const JOURNEY_OPACITY = 0.32;
   const INTRO_VISIBLE_FRACTION = 0.5;
   const ACTIVE_VISIBLE_FRACTION = 0.2;
   const AMBIENT_LIMIT = 3800;
@@ -170,6 +172,7 @@
   }
 
   const factories = { technology: circuit, music: piano, cubing: puzzle };
+  const header = document.querySelector('.site-header');
   const styles = getComputedStyle(document.documentElement);
   const font = styles.getPropertyValue('--font-outlier').trim();
   const palette = ['--color-glyph-1', '--color-glyph-2', '--color-glyph-3', '--color-glyph-4',
@@ -180,7 +183,7 @@
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    const textBlocks = [...document.querySelectorAll('.intro-copy, .about-copy, .topic-copy, .section-heading, .feature-copy, .section-tail, .interests-grid, .org-grid, .directory-controls, .repo-grid, .contact-grid, .site-footer')];
+    const textBlocks = [...document.querySelectorAll('.intro-copy, .about-copy, .topic-copy, .milestone-copy, .section-heading, .feature-copy, .section-tail, .interests-grid, .org-grid, .directory-controls, .repo-grid, .contact-grid, .site-footer')];
     const graphite = document.querySelector('.organization-section');
     const paperTints = ['light', 'mid', 'deep'].map(tint => styles.getPropertyValue('--color-stream-' + tint).trim());
     const graphiteTints = [1, 2, 3].map(tint => styles.getPropertyValue('--color-graphite-glyph-' + tint).trim());
@@ -267,21 +270,21 @@
 
   startPageField();
 
-  function renderer(canvas, ctx, model) {
+  function renderer(canvas, ctx, model, backdrop = false) {
     const cellWidth = CELL_WIDTH, cellHeight = CELL_HEIGHT;
     let cols, rows, width, height, depth, tones, glyphs, lit;
-    let entranceScale, restingScale;
+    let entranceScale, restingScale, orbitScale;
     const restingBounds = model.bounds(0, { turns: 0, turn: null });
 
     function fitScale(bounds, yawSin, yawCos, pitchSin, pitchCos) {
-      let scale = Math.min(width * 1.1, height * 1.25) / model.size;
+      let scale = backdrop ? Infinity : Math.min(width * 1.1, height * 1.25) / model.size;
       for (const [x, y, z] of bounds) {
         const rx = x * yawCos + z * yawSin;
         const rz = z * yawCos - x * yawSin;
         const ry = y * pitchCos - rz * pitchSin;
         const perspective = 8 / (8 - y * pitchSin - rz * pitchCos);
-        scale = Math.min(scale, (width / 2 - cellWidth) / Math.abs(rx * perspective),
-          (height / 2 - cellHeight) / Math.abs(ry * perspective));
+        scale = Math.min(scale, (width / 2 - cellWidth) / Math.abs(rx * perspective));
+        if (!backdrop) scale = Math.min(scale, (height / 2 - cellHeight) / Math.abs(ry * perspective));
       }
       return scale;
     }
@@ -308,18 +311,21 @@
         const yaw = model.yaw + step * FULL_TURN / 72;
         turnScale = Math.min(turnScale, fitScale(restingBounds, Math.sin(yaw), Math.cos(yaw), pitchSin, pitchCos));
       }
-      entranceScale = Math.min(restingScale * 0.94, turnScale * 0.99);
+      orbitScale = turnScale * 0.99;
+      entranceScale = Math.min(restingScale * 0.94, orbitScale);
     }
 
-    function draw(time, state) {
+    function draw(time, state, projection) {
       if (!width || !height) return;
       ctx.clearRect(0, 0, width, height);
       depth.fill(-Infinity);
       const yawSin = Math.sin(state.yaw), yawCos = Math.cos(state.yaw);
       const pitchSin = Math.sin(state.pitch), pitchCos = Math.cos(state.pitch);
-      const scale = state.introGrowth === null
+      const scale = projection?.scale ?? (state.introGrowth === null
         ? fitScale(model.bounds(time, state), yawSin, yawCos, pitchSin, pitchCos)
-        : entranceScale + (restingScale - entranceScale) * state.introGrowth;
+        : entranceScale + (restingScale - entranceScale) * state.introGrowth);
+      const centerX = projection?.x ?? width / 2;
+      const centerY = projection?.y ?? height / 2;
       const ox = (width - cols * cellWidth) / 2;
       const oy = (height - rows * cellHeight) / 2;
       ctx.font = `${GLYPH_SIZE}px ${font || 'monospace'}`;
@@ -340,8 +346,8 @@
           light = normalDepth > 0.55 ? 1 : 0;
         }
         const perspective = 8 / (8 - front);
-        const col = Math.floor((width / 2 + rx * scale * perspective - ox) / cellWidth);
-        const row = Math.floor((height / 2 - ry * scale * perspective - oy) / cellHeight);
+        const col = Math.floor((centerX + rx * scale * perspective - ox) / cellWidth);
+        const row = Math.floor((centerY - ry * scale * perspective - oy) / cellHeight);
         if (col < 0 || col >= cols || row < 0 || row >= rows) return;
         const index = row * cols + col;
         const shade = clamp(Math.round(requestedTone) + light, 0, 6);
@@ -361,13 +367,24 @@
         ctx.fillStyle = palette[lit[index] ? 4 : tones[index]];
         ctx.fillText(glyphs[index], ox + col * cellWidth, oy + (row + 0.5) * cellHeight);
       }
+      return scale;
     }
-    return { resize, draw };
+    return { resize, draw, scaleForTurn: () => orbitScale };
   }
 
   const instances = [];
   let frame = 0;
+  let layoutFrame = 0;
   let last = 0;
+  function scheduleLayout() {
+    if (layoutFrame) return;
+    layoutFrame = requestAnimationFrame(() => {
+      layoutFrame = 0;
+      instances.forEach(instance => instance.layoutJourney());
+      schedule();
+    });
+  }
+
   function tick(now) {
     frame = 0;
     const step = !last ? 0 : Math.min(now - last, 40);
@@ -392,6 +409,15 @@
     const stage = figure.querySelector('.model-stage');
     const status = figure.querySelector('[role="status"]');
     const view = renderer(canvas, ctx, model);
+    const topic = figure.closest('.topic-section');
+    const grid = figure.parentElement;
+    const journey = topic.querySelector('.journey');
+    const backdrop = topic.querySelector('.journey-visual canvas');
+    const backdropContext = backdrop.getContext('2d');
+    const backdropView = backdropContext && renderer(backdrop, backdropContext, model, true);
+    const milestones = [...journey.querySelectorAll('.milestone')].map(row => ({
+      row, dot: row.querySelector('.milestone-dot'), trail: row.querySelector('.milestone-trail'),
+    }));
     let introActive = !motion.matches && 'IntersectionObserver' in window;
     const state = {
       yaw: model.yaw, pitch: model.pitch, ambient: 0, pattern: 'steady',
@@ -403,14 +429,21 @@
     let introElapsed = 0;
     let drag = null;
     let announceFrame = 0;
+    let foregroundScale = 0;
+    let originScale = 0;
+    let backdropProgress = 0;
+    let orbit = 0;
+    let projection;
     const announce = message => {
       cancelAnimationFrame(announceFrame);
       status.textContent = '';
       announceFrame = requestAnimationFrame(() => { status.textContent = message; });
     };
     const canAnimate = () => !motion.matches && inView && !document.hidden;
-    const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || introActive && introInView
-      || state.turn || state.signal !== null && !state.signalDone);
+    const running = () => backdropProgress
+      ? backdropProgress === 1 && !motion.matches && !document.hidden
+      : canAnimate() && (state.ambient < AMBIENT_LIMIT || introActive && introInView
+        || state.turn || state.signal !== null && !state.signalDone);
     function stopIntro() {
       introActive = false;
       state.introGrowth = null;
@@ -426,7 +459,14 @@
       state.signalDone = true;
       announce(figure.dataset.complete);
     };
-    const draw = now => view.draw(now, state);
+    const draw = now => { foregroundScale = view.draw(now, state); };
+    const drawBackdrop = now => {
+      backdropView.draw(now, {
+        ...state,
+        yaw: state.yaw + orbit * backdropProgress,
+        pitch: state.pitch + (model.pitch - state.pitch) * backdropProgress,
+      }, projection);
+    };
     const settle = () => {
       finishTurn();
       if (state.signal !== null) {
@@ -436,8 +476,67 @@
       draw(performance.now());
     };
 
+    function layoutJourney() {
+      const height = innerHeight;
+      const timeline = journey.getBoundingClientRect();
+      if (!motion.matches && timeline.top < height && timeline.bottom > 0) {
+        const points = milestones.map(({ dot }) => dot.getBoundingClientRect().top + dot.offsetHeight / 2);
+        milestones.forEach(({ row, trail }, index) => {
+          // Start the reveal while the dot is still approaching the middle.
+          if (points[index] <= height * 0.73) row.classList.add('is-reached');
+          if (trail) {
+            const fill = clamp((height * 0.63 - points[index]) / (points[index + 1] - points[index]), 0, 1);
+            trail.style.setProperty('--trail-unfilled', `${(1 - fill) * 100}%`);
+          }
+        });
+        journey.classList.add('is-scroll-driven');
+      }
+      if (!backdropView) return;
+      const gridEnd = grid.getBoundingClientRect().bottom;
+      const amount = motion.matches ? Number(gridEnd <= header.offsetHeight)
+        : clamp((height * 0.88 - gridEnd) / (height * 0.48), 0, 1);
+      const progress = timeline.bottom > 0 ? amount : 0;
+      if (!progress) {
+        if (backdropProgress) {
+          backdropProgress = 0;
+          orbit = 0;
+          backdrop.style.opacity = 0;
+          figure.classList.remove('is-handing-off');
+          draw(performance.now());
+        }
+        return;
+      }
+
+      if (!backdropProgress) {
+        originScale = foregroundScale;
+        stopIntro();
+        finishTurn();
+        finishSignal();
+      }
+      const source = canvas.getBoundingClientRect();
+      const target = backdrop.getBoundingClientRect();
+      const blend = progress * progress * (3 - 2 * progress);
+      projection = {
+        x: source.left + source.width / 2 - target.left,
+        y: source.top + source.height / 2 - target.top,
+        scale: originScale,
+      };
+      projection.x += (target.width / 2 - projection.x) * blend;
+      projection.y += (target.height / 2 - projection.y) * blend;
+      projection.scale += (backdropView.scaleForTurn() - projection.scale) * blend;
+      backdropProgress = progress;
+      backdrop.style.opacity = motion.matches ? JOURNEY_OPACITY : 1 + (JOURNEY_OPACITY - 1) * blend;
+      drawBackdrop(performance.now());
+      figure.classList.toggle('is-handing-off', !motion.matches);
+    }
+
     function update(now, step) {
       if (!running()) return;
+      if (backdropProgress) {
+        orbit += step * FULL_TURN / JOURNEY_TURN_DURATION;
+        drawBackdrop(now);
+        return;
+      }
       state.ambient = Math.min(AMBIENT_LIMIT, state.ambient + step);
       if (introActive && introInView) {
         introElapsed += step;
@@ -537,6 +636,7 @@
       // An assistive activation has no pointer sequence.
       if (event.detail === 0) activate();
     });
+    journey.addEventListener('focusin', event => event.target.closest('.milestone')?.classList.add('is-reached'));
 
     canvas.hidden = false;
     figure.querySelector('.model-fallback').hidden = true;
@@ -546,14 +646,26 @@
     stage.setAttribute('role', 'button');
     stage.setAttribute('aria-describedby', help.id);
     stage.classList.add('is-interactive');
-    const resize = () => { view.resize(); draw(performance.now()); };
+    const resize = () => {
+      view.resize();
+      backdropView?.resize();
+      draw(performance.now());
+      originScale = foregroundScale;
+      scheduleLayout();
+    };
+    if (backdropView) backdrop.hidden = false;
     resize();
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(canvas);
-    else window.addEventListener('resize', resize, { passive: true });
+    if ('ResizeObserver' in window) {
+      const observer = new ResizeObserver(resize);
+      observer.observe(canvas);
+      if (backdropView) observer.observe(backdrop);
+    }
+    window.addEventListener('resize', resize, { passive: true });
     document.fonts?.ready.then(resize);
     const motionChanged = () => {
       if (motion.matches) stopIntro();
       if (!canAnimate()) settle();
+      scheduleLayout();
       schedule();
     };
     if (motion.addEventListener) motion.addEventListener('change', motionChanged);
@@ -561,7 +673,7 @@
     document.addEventListener('visibilitychange', motionChanged);
 
     const instance = {
-      running, update,
+      running, update, layoutJourney,
       show(fraction) {
         inView = fraction >= ACTIVE_VISIBLE_FRACTION;
         introInView = fraction >= INTRO_VISIBLE_FRACTION;
@@ -579,6 +691,8 @@
     const instance = initialize(figure);
     if (instance) rendered.set(figure.querySelector('canvas'), instance);
   }
+  window.addEventListener('scroll', scheduleLayout, { passive: true });
+  window.addEventListener('pageshow', scheduleLayout);
   if ('IntersectionObserver' in window && rendered.size) {
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => rendered.get(entry.target).show(entry.isIntersecting ? entry.intersectionRatio : 0));

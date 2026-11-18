@@ -147,6 +147,37 @@ try {
   await page.waitForFunction(() => document.documentElement.lang === 'zh-Hans' && location.hash === '#music');
   console.log('PASS jump shortcut, search, empty state, Escape, arrows, Enter, and topic language anchor');
 
+  await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+  for (const [topic, next] of [['technology', '#music'], ['music', '#cubing'], ['cubing', '#work']]) {
+    await go('/#' + topic);
+    const first = '#' + topic + ' .milestone:first-child';
+    const approach = fraction => page.$eval(first + ' .milestone-dot', (el, fraction) => {
+      const dot = el.getBoundingClientRect();
+      scrollBy({ top: dot.top + dot.height / 2 - innerHeight * fraction, behavior: 'instant' });
+    }, fraction);
+    await approach(0.79);
+    await page.waitForFunction(selector => {
+      const el = document.querySelector(selector + ' .milestone-copy');
+      return getComputedStyle(el).opacity === '0';
+    }, {}, first);
+    await approach(0.69);
+    await page.waitForFunction(selector => {
+      const el = document.querySelector(selector);
+      return el.classList.contains('is-reached') && el.getBoundingClientRect().top > innerHeight / 2;
+    }, {}, first);
+    await approach(0.51);
+    await page.waitForFunction(selector => {
+      const trail = document.querySelector(selector + ' .milestone-trail');
+      return parseFloat(trail.style.getPropertyValue('--trail-unfilled')) < 100;
+    }, {}, first);
+    await page.waitForFunction(id => {
+      const canvas = document.querySelector('#' + id + ' .journey-visual canvas');
+      return parseFloat(canvas.style.opacity) < 0.5 && parseFloat(canvas.style.opacity) > 0;
+    }, {}, topic);
+    assert.equal(await page.$eval('#' + topic + ' .journey-next a', el => el.hash), next);
+  }
+  console.log('PASS each milestone path reveals above center, fills the line, shows the faint model, and links onward');
+
   const fallback = await browser.newPage();
   fallback.on('pageerror', error => errors.push(error.message));
   await fallback.evaluateOnNewDocument(() => { delete window.IntersectionObserver; });
@@ -159,6 +190,7 @@ try {
   assert.equal(await plain.$$eval('.repo-card', els => els.filter(el => !el.hidden).length), 28);
   assert.equal(await plain.$eval('.directory-controls', el => getComputedStyle(el).display), 'none');
   assert.equal(await plain.$$eval('.model-fallback:not([hidden])', els => els.length), 3);
+  assert.equal(await plain.$$eval('.milestone-copy', els => els.filter(el => getComputedStyle(el).opacity === '1').length), 25);
   assert.equal(await plain.$$eval('.model-stage[tabindex], .jump-trigger:not([hidden])', els => els.length), 0);
   await plain.click('#project-whaos summary');
   assert.equal(await plain.$eval('#project-whaos details', el => el.open), true);

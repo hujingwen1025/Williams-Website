@@ -58,6 +58,12 @@ def verify():
         check(section_ids == ['top', 'about', 'technology', 'music', 'cubing', 'work', 'beyond', 'exabyte', 'explore', 'connect'], 'Incorrect topic or section order')
         check([a['data-model'] for a in doc.classified('topic-model')] == ['technology', 'music', 'cubing'], 'Missing character model')
         check(len(doc.classified('model-fallback')) == 3 and not doc.classified('model-controls'), 'Models need static art without separate controls')
+        journeys = doc.classified('journey')
+        check([a['id'] for a in journeys] == ['technology-journey', 'music-journey', 'cubing-journey'], 'Missing milestone pathways')
+        check(all(a.get('aria-label') for a in journeys), 'Missing accessible pathway labels')
+        dates = [a['datetime'] for a in doc.attrs('time')]
+        check(len(dates) == len(doc.classified('milestone')) == 25, 'Expected 25 dated milestones')
+        check(any(a.get('href') == 'https://www.worldcubeassociation.org/persons/2026HUJI03' for a in doc.attrs('a')), 'Missing WCA results link')
         check(len(doc.classified('page-field')) == 1 and doc.classified('page-field')[0].get('aria-hidden') == 'true', 'Missing decorative page field')
         for anchor in ['project-resona', 'project-whaos', 'project-rhythm', 'project-sonora', 'project-academy', 'project-dorm']:
             check(anchor in ids, f'Lost original project anchor: {anchor}')
@@ -69,8 +75,9 @@ def verify():
         for name in ["Jingwen Hu", "胡竞文", "Resona Lite", "Cubers", "Daylight", "WhaOS", "Rhythm Cook", "Sonora", "CAICP Academy", "Dorm Pass Manager", "Neuorise", "Python", "AppleScript", "UNO"]:
             check(name in text, f"Missing static content: {name}")
         check(('开发中' if lang == 'zh-Hans' else 'In development') in text, 'Cubers must not imply a public launch')
+        private_text = re.sub(r"MIMC Beijing round|MIMC 北京赛区|Beijing Autumn Begins 2026(?:（北京）)?", "", text)
         for banned in [r"\bbirthday\b", r"\bage:\s*\d", r"\bBeijing\b", r"\bKeystone\b", r"Oct(?:ober)?\s*25", r"年龄", r"生日", r"北京", r"鼎石", r"KACO", r"Fisherman Fishes", r"Slay Apple"]:
-            check(not re.search(banned, text, re.I), f"Excluded biography/archive content: {banned}")
+            check(not re.search(banned, private_text, re.I), f"Excluded biography/archive content: {banned}")
         check("jingwen.hu@exabyte.org.cn" in text, "Missing approved business email")
         for _, a in doc.nodes:
             for key in ("href", "src"):
@@ -110,7 +117,7 @@ def verify():
         check("hidden" in doc.classified("menu-toggle")[0], "Inactive no-JS menu button should not be shown")
         repo_links = {a["href"] for a in doc.attrs("a") if a.get("href", "").startswith("https://github.com/") and len(urlsplit(a["href"]).path.strip("/").split("/")) == 2}
         check(len(repo_links) == 28, "Expected twenty-eight distinct public projects")
-        editions.append((set(ids), repo_links))
+        editions.append((set(ids), repo_links, dates))
         print(f"PASS {relative}: personal-first structure, 4 flagships, 28 projects, 4 interests, links, metadata, privacy")
     check(editions[0] == editions[1], "Languages differ in sections or repository destinations")
     ET.parse(PUBLIC / "sitemap.xml")

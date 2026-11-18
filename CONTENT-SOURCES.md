@@ -78,3 +78,9 @@ The catalogs were checked using the public [personal repository list](https://ap
 - Shared work remains shared. First-person creative copy must stay within the documented interests and user-approved facts.
 - English and Chinese express the same facts. Technology names and official project names may remain in English.
 - If new facts are added later, record a public supporting source here first.
+
+## Milestone pathways
+
+- William supplied the personal programming, piano, award, exam, and cubing milestones. The childhood years shown on the site are estimates based on the ages he supplied in November 2026. The profile omits his current age and birth date.
+- The [public GitHub account record](https://api.github.com/users/hujingwen1025) dates the account to September 25, 2021. Programming project groups use public repository creation dates from the personal and Exabyte listings linked above.
+- The [World Cube Association event page](https://www.worldcubeassociation.org/competitions/BeijingAutumnBegins2026) dates the competition to August 22–23, 2026. William supplied the public [WCA results profile](https://www.worldcubeassociation.org/persons/2026HUJI03), whose [competition record](https://www.worldcubeassociation.org/api/v0/persons/2026HUJI03/competitions) lists the event. Beijing appears as part of the names of the approved music and cubing events.

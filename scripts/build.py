@@ -3,6 +3,7 @@
 from pathlib import Path
 from html import escape
 from hashlib import sha256
+from datetime import date
 from urllib.parse import urlsplit
 import argparse
 from error_pages import write_error_pages
@@ -304,6 +305,90 @@ TOPICS = (
 )
 
 
+MILESTONES = {
+    "technology": (
+        ("2017", L("First programs in Scratch", "用 Scratch 写下第一个程序"), L("I was eight when I started putting blocks together to make my own programs.", "八岁时，我开始用积木模块拼出自己的程序。")),
+        ("2020", L("Started writing Python", "开始学习 Python"), L("At eleven I moved from blocks to writing code in Python.", "十一岁时，我从积木编程转向用 Python 写代码。")),
+        ("2021", L("Started learning machine learning", "开始学习机器学习"), L("At twelve I began exploring how computers learn from examples.", "十二岁时，我开始探索计算机如何从示例中学习。")),
+        ("2021-09-25", L("Joined GitHub", "加入 GitHub"), L("Later that year I shared my early Teachable Machine experiments in AI Machines.", "同年晚些时候，我在 AI Machines 中分享了早期用 Teachable Machine 做的实验。"), ("project-ai-machines",)),
+        ("2024", L("Tools for robotics and everyday workflows", "为机器人开发和日常流程制作工具"), L("I built tools for FRC development and worked on an Exabyte app for managing dorm passes.", "我为 FRC 机器人开发制作工具，并参与了 Exabyte 的宿舍通行管理应用。"), ("project-frc-library-installer", "project-keyshare", "project-dorm")),
+        ("2025", L("Websites, games, and utilities", "网站、游戏和实用工具"), L("I built a site for 1001 Libraries, made an online game, and worked on tools for Mac apps and Chinese citations.", "我为 1001 Libraries 制作网站、开发了在线游戏，也参与制作了 Mac 应用管理和中文参考文献工具。"), ("project-1001-libraries-website", "project-remote-tic-tac-toe", "project-wb-app-store", "project-keystone-chinese-reference-generator")),
+        ("2026", L("Experiments with sound and software", "探索声音与软件"), L("I made music that runs in the browser, co-created Resona with Exabyte, and built a web desktop that generates small apps.", "我尝试在浏览器中生成音乐，与 Exabyte 共同创作 Resona，并制作了能生成小应用的网页桌面。"), ("project-rhythm", "project-sonora", "project-resona", "project-whaos")),
+        ("2026-10", L("Learning tools and a cubing app", "学习工具与魔方应用"), L("I built a bilingual study resource and worked on Exabyte’s calendar viewer and Cubers, a cubing app still in development.", "我制作了双语学习资源，并参与开发 Exabyte 的日历查看工具和仍在开发中的魔方应用 Cubers。"), ("project-academy", "project-daylight", "project-cubers")),
+        ("2026-11", L("Resona Lite", "Resona Lite"), L("I worked on Exabyte’s ambient audio app, with on-device sound generation and an interactive mixer.", "我参与开发了 Exabyte 的环境音应用，它支持在设备上生成声音和交互式混音。"), ("project-resona-lite",)),
+    ),
+    "music": (
+        ("2013", L("Started learning piano", "开始学钢琴"), L("I began taking piano lessons at four.", "四岁时，我开始上钢琴课。")),
+        ("2017", L("First piano performance", "第一次钢琴演出"), L("I performed for an audience for the first time at eight.", "八岁时，我第一次在观众面前演奏钢琴。")),
+        ("2019", L("ABRSM Grade 2 Piano", "ABRSM 钢琴二级"), L("I earned Grade 2 at ten.", "十岁时，我通过了钢琴二级考试。")),
+        ("2022", L("SPIC first prize", "SPIC 一等奖")),
+        ("2023", L("MIMC Beijing round, first prize", "MIMC 北京赛区一等奖"), L("Melbourne International Music Competition", "墨尔本国际音乐比赛")),
+        ("2023", L("MIMC international finals, third prize", "MIMC 国际总决赛三等奖"), L("Melbourne International Music Competition", "墨尔本国际音乐比赛")),
+        ("2024", L("MIMC Beijing round, first prize", "MIMC 北京赛区一等奖"), L("Melbourne International Music Competition", "墨尔本国际音乐比赛")),
+        ("2025", L("ABRSM Grade 8 Piano", "ABRSM 钢琴八级")),
+    ),
+    "cubing": (
+        ("2024", L("Solved my first Rubik’s Cube", "第一次还原魔方"), L("I learned the beginner method and used it to solve a 3×3.", "我学会了入门解法，并用它还原了一个三阶魔方。")),
+        ("2025", L("Got into speedcubing", "开始练习速拧"), L("I began timing my solves and practicing to get faster.", "我开始给自己的还原计时，练习提高速度。")),
+        ("2025-10-17", L("Under 1 minute", "突破 1 分钟")),
+        ("2025-12-01", L("Under 40 seconds", "突破 40 秒")),
+        ("2026-01-19", L("Under 30 seconds", "突破 30 秒")),
+        ("2026-05-06", L("Under 20 seconds", "突破 20 秒")),
+        ("2026-08-22", L("First WCA competition", "第一次参加 WCA 比赛"), L("Beijing Autumn Begins 2026", "Beijing Autumn Begins 2026（北京）")),
+        ("2026-10-13", L("Under 15 seconds", "突破 15 秒")),
+    ),
+}
+WCA_PROFILE = "https://www.worldcubeassociation.org/persons/2026HUJI03"
+
+
+def milestone_date(stamp, lang, approximate):
+    parts = stamp.split("-")
+    if len(parts) == 1:
+        label = stamp + (" 年" if lang == "zh" else "")
+        return (("约 " if lang == "zh" else "Around ") if approximate else "") + label
+    day = date.fromisoformat(stamp if len(parts) == 3 else stamp + "-01")
+    label = f"{day.year} 年 {day.month} 月" if lang == "zh" else day.strftime("%b")
+    if stamp == "2026-08-22":
+        return f"{label} 22 日至 23 日" if lang == "zh" else f"{label} 22 and 23, {day.year}"
+    if lang == "zh":
+        return f"{label} {day.day} 日" if len(parts) == 3 else label
+    return f"{label} {day.day}, {day.year}" if len(parts) == 3 else f"{label} {day.year}"
+
+
+def topic_journey(key, lang, projects):
+    region_label, next_id, next_label = {
+        "technology": (L("Programming milestones", "编程里程碑"), "music", L("Jump to Music", "跳转到音乐")),
+        "music": (L("Music milestones", "音乐里程碑"), "cubing", L("Jump to Cubing", "跳转到魔方")),
+        "cubing": (L("Cubing milestones", "魔方里程碑"), "work", L("Jump to Selected Projects", "跳转到精选项目")),
+    }[key]
+    rows = []
+    for index, (stamp, title, *details) in enumerate(MILESTONES[key]):
+        description = f'<p>{escape(details[0][lang])}</p>' if details else ''
+        links = []
+        if len(details) > 1:
+            links = [f'<a href="#{anchor}">{escape(projects[anchor])}</a>' for anchor in details[1]]
+        if key == "cubing" and stamp == "2026-08-22":
+            label = L("WCA results (2026HUJI03)", "WCA 比赛成绩（2026HUJI03）")[lang]
+            links.append(link(WCA_PROFILE, label))
+        project_links = f'<ul class="milestone-links" role="list">{"".join(f"<li>{a}</li>" for a in links)}</ul>' if links else ""
+        approx = key in ("technology", "music") and index < 3
+        path = "M 16,0 C 16,29 29,23 29,49 S 16,71 16,100" if index % 2 == 0 else "M 16,0 C 16,29 3,23 3,49 S 16,71 16,100"
+        trail = '' if index == len(MILESTONES[key]) - 1 else f'''<svg class="milestone-trail" viewBox="0 0 32 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="milestone-dashes" d="{path}"/><path class="milestone-ink" d="{path}"/>
+        </svg>'''
+        rows.append(f'''<li class="milestone">
+        {trail}<span class="milestone-dot" aria-hidden="true"></span>
+        <div class="milestone-copy"><time datetime="{stamp}">{milestone_date(stamp, lang, approx)}</time>
+          <p class="milestone-title">{escape(title[lang])}</p>{description}{project_links}</div>
+      </li>''')
+    return f'''<div class="container journey" id="{key}-journey" role="region" aria-label="{escape(region_label[lang], quote=True)}">
+    <ol class="milestone-path" role="list">
+      {"".join(rows)}
+    </ol>
+    <div class="journey-next"><a class="model-key" href="#{next_id}">{next_label[lang]}{icon("arrow")}</a></div>
+  </div>'''
+
+
 def topic_sections(lang):
     def t(en, zh):
         return zh if lang == "zh" else en
@@ -318,6 +403,8 @@ def topic_sections(lang):
         'music': (L("Steady pattern.", "均匀节拍。"), L("Syncopated pattern.", "切分节奏。")),
         'cubing': (L("Top layer turned.", "顶层已转动。"), L("", "")),
     }
+    projects = {p["anchor"]: localized(p["name"], lang) for p in catalog()}
+    projects.update({"project-" + p["id"]: p["name"] for p in FEATURES})
     sections = []
     for key, title, intro, detail, caption, destinations, fallback in TOPICS:
         links = ''.join(
@@ -326,6 +413,7 @@ def topic_sections(lang):
             for anchor, name, description in destinations
         )
         sections.append(f'''<section class="topic-section" id="{key}" aria-labelledby="{key}-heading">
+  <div class="journey-art" aria-hidden="true"><div class="container journey-visual"><canvas hidden></canvas></div></div>
   <div class="container topic-grid">
     <div class="topic-copy"><h2 id="{key}-heading">{title[lang]}</h2><p class="topic-lead">{intro[lang]}</p>
       <p>{detail[lang]}</p><ul class="topic-links">{links}</ul></div>
@@ -339,6 +427,7 @@ def topic_sections(lang):
       <p class="sr-only" role="status"></p>
     </figure>
   </div>
+  {topic_journey(key, lang, projects)}
 </section>''')
     return '\n'.join(sections)
 

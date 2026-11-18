@@ -384,6 +384,130 @@ html[lang="zh-Hans"] h2, html[lang="zh-Hans"] h3 { line-height: 1.3; letter-spac
   .model-key { padding-inline: var(--space-xs); }
 }
 
+.topic-section { position: relative; isolation: isolate; }
+.journey-art { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.journey-visual {
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100svh - var(--header-height));
+}
+.journey-visual canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  mask-image: linear-gradient(var(--color-clear), var(--color-paper) 12%, var(--color-paper) 88%, var(--color-clear));
+}
+.topic-model.is-handing-off .model-canvas { opacity: 0; }
+.topic-model.is-handing-off .model-stage:focus-visible .model-canvas { opacity: 1; }
+.topic-model.is-handing-off .model-stage:not(:focus-visible) { pointer-events: none; }
+.journey {
+  --trail-width: 32px;
+  --trail-gap: var(--space-lg);
+  --journey-inset: clamp(var(--space-xl), 6vw, var(--space-3xl));
+  --dot-offset: 10px;
+  position: relative;
+  padding-block: var(--space-3xl) var(--space-xl);
+  padding-inline-start: calc(var(--gutter) + var(--journey-inset));
+}
+.milestone-path {
+  margin: 0;
+  padding: 0;
+  max-width: 42rem;
+  list-style: none;
+}
+.milestone {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--trail-width) minmax(0, 1fr);
+  column-gap: var(--trail-gap);
+  padding-block-end: clamp(30px, 5svh, 56px);
+}
+.milestone-copy {
+  grid-column: 2;
+  min-width: 0;
+  font-size: 1.125rem;
+  text-shadow: 0 0 10px var(--color-paper), 0 0 3px var(--color-paper);
+}
+.milestone-copy time {
+  display: block;
+  margin-block-end: var(--space-xs);
+  color: var(--color-muted);
+  font: 500 var(--text-md)/1.4 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.milestone-copy .milestone-title {
+  font: 600 clamp(var(--text-lg), 1.9vw, var(--text-xl))/1.2 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  overflow-wrap: break-word;
+}
+.milestone-title + p { margin-block-start: var(--space-xs); color: var(--color-ink-2); }
+.milestone-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-sm);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.milestone-links a {
+  display: inline-flex;
+  gap: var(--space-2xs);
+  align-items: center;
+  min-height: 24px;
+  color: var(--color-accent-deep);
+  font-size: var(--text-md);
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent-2);
+  text-underline-offset: 0.2em;
+}
+.milestone-links a:hover { text-decoration-color: var(--color-accent-deep); }
+.milestone-links .icon { width: 14px; height: 14px; }
+.milestone-dot, .milestone-trail { position: absolute; left: calc(var(--trail-width) / 2); top: var(--dot-offset); }
+.milestone-dot {
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-paper);
+  transform: translate(-50%, -50%);
+}
+.milestone-trail {
+  width: var(--trail-width);
+  height: calc(100% + 1px);
+  overflow: visible;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.milestone-trail path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.milestone-dashes { stroke: var(--color-glyph-3); stroke-dasharray: 0.5 6; }
+.milestone-ink { stroke: var(--color-accent); }
+.journey-next { display: flex; margin-inline-start: calc(var(--trail-width) + var(--trail-gap)); }
+.journey-next .model-key { min-height: 40px; }
+.journey-next .icon { width: 16px; height: 16px; transform: rotate(90deg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .journey.is-scroll-driven .milestone-ink { clip-path: inset(-2px -2px var(--trail-unfilled, 0%) -2px); }
+  .journey.is-scroll-driven .milestone-copy {
+    transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+  }
+  .journey.is-scroll-driven .milestone:not(.is-reached):not(:focus-within) .milestone-copy {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .journey.is-scroll-driven .milestone:focus-within .milestone-copy { transition: none; }
+}
+@media (max-width: 700px) {
+  .journey-visual { --gutter: 10px; }
+  .journey { --trail-gap: var(--space-sm); --journey-inset: 0px; }
+}
+
 .jump-trigger .icon { width: 16px; height: 16px; }
 .jump-trigger kbd {
   padding: var(--space-2xs);
