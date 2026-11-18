@@ -2,6 +2,7 @@
 """Build both readable, static language editions. Python standard library only."""
 from pathlib import Path
 from html import escape
+from hashlib import sha256
 from urllib.parse import urlsplit
 import argparse
 from error_pages import write_error_pages
@@ -9,6 +10,11 @@ from error_pages import write_error_pages
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 SITE_URL = "https://williamhu.tech"
+
+
+def asset_url(name):
+    path = PUBLIC / "assets" / name
+    return f"assets/{name}?v={sha256(path.read_bytes()).hexdigest()[:12]}"
 
 
 def L(en, zh):
@@ -315,7 +321,7 @@ def topic_sections(lang):
     sections = []
     for key, title, intro, detail, caption, destinations, fallback in TOPICS:
         links = ''.join(
-            f'<li><a href="#{anchor}"><span><span class="topic-project-name">{escape(name)}</span>'
+            f'<li><a href="#{anchor}"><span class="topic-project-copy"><strong class="topic-project-name">{escape(name)}</strong>'
             f'<span class="topic-project-description">{escape(description[lang])}</span></span>{icon("arrow")}</a></li>'
             for anchor, name, description in destinations
         )
@@ -378,8 +384,8 @@ def page(lang):
 <meta property="og:locale" content="{'zh_CN' if zh else 'en_US'}"><meta property="og:locale:alternate" content="{'en_US' if zh else 'zh_CN'}">
 <meta property="og:url" content="{SITE_URL}/{'zh/' if zh else ''}"><meta property="og:site_name" content="William Hu"><meta property="og:image" content="{SITE_URL}/assets/social{'-zh' if zh else ''}.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="{escape(c['intro'], quote=True)}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{c['title']}"><meta name="twitter:description" content="{escape(c['description'], quote=True)}"><meta name="twitter:image" content="{SITE_URL}/assets/social{'-zh' if zh else ''}.png">
-<link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="{prefix}assets/fonts/familjen-grotesk-1.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="{prefix}assets/style.css">
-<script src="{prefix}assets/site.js" defer></script><script src="{prefix}assets/glyph-models.js" defer></script>
+<link rel="icon" href="{prefix}assets/favicon.svg" type="image/svg+xml"><link rel="preload" href="{prefix}assets/fonts/familjen-grotesk-1.ttf" as="font" type="font/ttf" crossorigin><link rel="stylesheet" href="{prefix}{asset_url('style.css')}">
+<script src="{prefix}assets/site.js" defer></script><script src="{prefix}{asset_url('glyph-models.js')}" defer></script>
 </head><body data-language="{lang}">
 <a class="skip-link" href="#main">{c['skip']}</a><div class="reading-progress" aria-hidden="true"><span></span></div>
 <header class="site-header"><div class="nav-shell container"><a class="wordmark" href="#top" aria-label="William Hu"><span class="brand-mark" aria-hidden="true">W.</span><span>William Hu</span></a>

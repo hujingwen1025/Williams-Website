@@ -7,6 +7,8 @@
   const QUARTER = Math.PI / 2;
   const FULL_TURN = 4 * QUARTER;
   const INTRO_SPIN_DURATION = 3000;
+  const INTRO_VISIBLE_FRACTION = 0.5;
+  const ACTIVE_VISIBLE_FRACTION = 0.2;
   const AMBIENT_LIMIT = 3800;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const themes = [
@@ -377,7 +379,9 @@
       signal: null, signalDone: false, turns: 0, turn: null,
     };
     let inView = false;
+    let introInView = false;
     let introSpin = true;
+    let introElapsed = 0;
     let drag = null;
     let announceFrame = 0;
     const announce = message => {
@@ -386,7 +390,8 @@
       announceFrame = requestAnimationFrame(() => { status.textContent = message; });
     };
     const canAnimate = () => !motion.matches && inView && !document.hidden;
-    const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || state.turn || state.signal !== null && !state.signalDone);
+    const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || introSpin && introInView
+      || state.turn || state.signal !== null && !state.signalDone);
     const finishTurn = () => {
       if (!state.turn) return;
       state.turns = (state.turns + 1) % 4;
@@ -411,8 +416,9 @@
     function update(now, step) {
       if (!running()) return;
       state.ambient = Math.min(AMBIENT_LIMIT, state.ambient + step);
-      if (introSpin) {
-        const progress = Math.min(1, state.ambient / INTRO_SPIN_DURATION);
+      if (introSpin && introInView) {
+        introElapsed += step;
+        const progress = Math.min(1, introElapsed / INTRO_SPIN_DURATION);
         introSpin = progress < 1;
         const eased = progress - 0.85 * Math.sin(FULL_TURN * progress) / FULL_TURN;
         state.yaw = introSpin ? model.yaw + FULL_TURN * eased : model.yaw;
@@ -517,7 +523,7 @@
     else window.addEventListener('resize', resize, { passive: true });
     document.fonts?.ready.then(resize);
     const motionChanged = () => {
-      if (inView && motion.matches) introSpin = false;
+      if (introInView && motion.matches) introSpin = false;
       if (!canAnimate()) settle();
       schedule();
     };
@@ -527,10 +533,11 @@
 
     const instance = {
       running, update,
-      show(visible) {
-        inView = visible;
-        if (visible && motion.matches) introSpin = false;
-        if (!visible) settle();
+      show(fraction) {
+        inView = fraction >= ACTIVE_VISIBLE_FRACTION;
+        introInView = fraction >= INTRO_VISIBLE_FRACTION;
+        if (introInView && motion.matches) introSpin = false;
+        if (!inView) settle();
         schedule();
       },
     };
@@ -546,11 +553,11 @@
   }
   if ('IntersectionObserver' in window && rendered.size) {
     const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => rendered.get(entry.target).show(entry.isIntersecting && entry.intersectionRatio >= 0.2));
-    }, { threshold: 0.2 });
+      entries.forEach(entry => rendered.get(entry.target).show(entry.isIntersecting ? entry.intersectionRatio : 0));
+    }, { threshold: [ACTIVE_VISIBLE_FRACTION, INTRO_VISIBLE_FRACTION] });
     rendered.forEach((_, canvas) => observer.observe(canvas));
   } else {
     // Explicit actions still work when viewport observation is unavailable.
-    rendered.forEach(instance => instance.show(false));
+    rendered.forEach(instance => instance.show(0));
   }
 })();
