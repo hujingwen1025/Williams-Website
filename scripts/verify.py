@@ -57,7 +57,8 @@ def verify():
         section_ids = [a['id'] for a in doc.attrs('section')]
         check(section_ids == ['top', 'about', 'technology', 'music', 'cubing', 'work', 'beyond', 'exabyte', 'explore', 'connect'], 'Incorrect topic or section order')
         check([a['data-model'] for a in doc.classified('topic-model')] == ['technology', 'music', 'cubing'], 'Missing character model')
-        check(len(doc.classified('model-fallback')) == 3 and all('hidden' in a for a in doc.classified('model-controls')), 'Models need static art and progressive controls')
+        check(len(doc.classified('model-fallback')) == 3 and not doc.classified('model-controls'), 'Models need static art without separate controls')
+        check(len(doc.classified('page-field')) == 1 and doc.classified('page-field')[0].get('aria-hidden') == 'true', 'Missing decorative page field')
         for anchor in ['project-resona', 'project-whaos', 'project-rhythm', 'project-sonora', 'project-academy', 'project-dorm']:
             check(anchor in ids, f'Lost original project anchor: {anchor}')
         for interest in ['interest-piano', 'interest-sports', 'interest-video', 'interest-games']:

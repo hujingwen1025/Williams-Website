@@ -258,7 +258,7 @@ def feature(p, lang, prefix):
 
 TOPICS = (
     ("technology", L("Technology", "科技"), L("I like figuring out how things work, then writing software that makes them a little easier to use.", "我喜欢弄清事物是如何运作的，再写一些软件，让它们用起来更顺手。"),
-     L("My projects include learning tools and software for everyday workflows. The circuit board here lets you follow a signal from the chip to a contact at the edge.", "我的项目包括学习工具和解决日常问题的软件。试试这块电路板，看看信号怎样从芯片传到边缘的触点。"),
+     L("My projects include learning tools and software for everyday workflows. Tap the circuit board to follow a signal from the chip to a contact at the edge.", "我的项目包括学习工具和解决日常问题的软件。轻触电路板，看看信号怎样从芯片传到边缘的触点。"),
      L("Circuit board", "电路板"), (("project-academy", "CAICP Academy"), ("project-dorm", "Dorm Pass Manager")),
      """         .----------------------.
         / +++==[######]==+++   /|
@@ -267,7 +267,7 @@ TOPICS = (
      /=====================/  /
      '---------------------' /"""),
     ("music", L("Music", "音乐"), L("I play piano, listen to music, and explore what happens when sound and code come together.", "我喜欢弹钢琴、听音乐，也喜欢探索声音与代码碰到一起会发生什么。"),
-     L("That curiosity carries into Resona Lite and Rhythm Cook. Switch the pattern above the keys to see how moving the accents changes the rhythm.", "这份好奇心也延伸到了 Resona Lite 和 Rhythm Cook。切换琴键上方的节奏，看看重音的位置变化会带来怎样的效果。"),
+     L("That curiosity carries into Resona Lite and Rhythm Cook. Tap the piano to see how moving the accents changes the rhythm.", "这份好奇心也延伸到了 Resona Lite 和 Rhythm Cook。轻触钢琴，看看重音的位置会怎样改变节奏。"),
      L("Piano and waveform", "钢琴与波形"), (("project-resona-lite", "Resona Lite"), ("project-rhythm", "Rhythm Cook")),
      """           ::      ##
        +++:  :++++#  #++   ++
@@ -276,7 +276,7 @@ TOPICS = (
     /__|__||__||_|||__||_|/ /
     '====================='"""),
     ("cubing", L("Cubing", "魔方"), L("Cubing is a chance to take a puzzle apart in my head, one turn at a time.", "玩魔方时，我喜欢在脑海里把一个难题拆成一次次转动。"),
-     L("Cubers brings that idea into guided lessons and interactive practice. Here, turn the top layer and rotate the whole cube to see where the pieces went.", "Cubers 把这种思路做成了分步课程和交互练习。在这里，可以转动顶层，再旋转整个魔方，看看方块移到了哪里。"),
+     L("Cubers brings that idea into guided lessons and interactive practice. Tap the cube to turn its top layer, then drag to see where the pieces went.", "Cubers 把这种思路做成了分步课程和交互练习。轻触魔方转动顶层，再拖动看看方块移到了哪里。"),
      L("3×3 puzzle cube", "三阶魔方"), (("project-cubers", "Cubers"),),
      """            +++
          +++:::+++
@@ -294,20 +294,15 @@ def topic_sections(lang):
     def t(en, zh):
         return zh if lang == "zh" else en
 
-    def button(action, label, extra=""):
-        return f'<button type="button" class="model-key" data-action="{action}"{extra}>{label}</button>'
-
-    rotate = ''.join(button(action, glyph, f' aria-label="{label}"') for action, glyph, label in (
-        ('left', '←', t('Rotate left', '向左旋转')), ('right', '→', t('Rotate right', '向右旋转')),
-        ('up', '↑', t('Rotate up', '向上旋转')), ('down', '↓', t('Rotate down', '向下旋转')),
-    ))
-    view = button('view', t('Reset view', '重置视角'))
-    motion = button('motion', t('Pause motion', '暂停动效'),
-                    f' data-pause="{t("Pause motion", "暂停动效")}" data-play="{t("Play motion", "播放动效")}"')
-    actions = {
-        'technology': button('signal', t('Send a signal', '发送信号'), f' data-complete="{t("Signal reached the contact.", "信号已到达触点。")}"'),
-        'music': button('steady', t('Steady', '均匀节拍'), ' aria-pressed="true"') + button('syncopated', t('Syncopated', '切分节奏'), ' aria-pressed="false"'),
-        'cubing': button('turn', t('Turn top layer', '转动顶层'), f' data-complete="{t("Top layer turned.", "顶层已转动。")}"') + button('cube', t('Reset cube', '重置魔方'), f' data-complete="{t("Cube reset.", "魔方已重置。")}"'),
+    interaction = {
+        'technology': L("Tap to send a signal.", "轻触发送信号。"),
+        'music': L("Tap to switch the visual rhythm.", "轻触切换可视化节奏。"),
+        'cubing': L("Tap to turn the top layer.", "轻触转动顶层。"),
+    }
+    announcements = {
+        'technology': (L("Signal reached the contact.", "信号已到达触点。"), L("", "")),
+        'music': (L("Steady pattern.", "均匀节拍。"), L("Syncopated pattern.", "切分节奏。")),
+        'cubing': (L("Top layer turned.", "顶层已转动。"), L("", "")),
     }
     sections = []
     for key, title, intro, detail, caption, destinations, fallback in TOPICS:
@@ -316,14 +311,14 @@ def topic_sections(lang):
   <div class="container topic-grid">
     <div class="topic-copy"><h2 id="{key}-heading">{title[lang]}</h2><p class="topic-lead">{intro[lang]}</p>
       <p>{detail[lang]}</p><ul class="topic-links">{links}</ul></div>
-    <figure class="topic-model" data-model="{key}">
-      <div class="model-stage"><pre class="model-fallback" aria-hidden="true">{escape(fallback)}</pre><canvas class="model-canvas" aria-hidden="true" hidden></canvas></div>
-      <div class="model-controls" hidden>
-        <div class="model-actions" role="group" aria-label="{t('Model actions', '模型操作')}">{actions[key]}</div>
-        <div class="model-view" role="group" aria-label="{t('View controls', '视角控制')}"><div class="model-directions">{rotate}</div>{view}{motion}</div>
-        <p class="sr-only" role="status"></p>
+    <figure class="topic-model" data-model="{key}" data-complete="{announcements[key][0][lang]}" data-alt-complete="{announcements[key][1][lang]}">
+      <div class="model-stage" aria-labelledby="{key}-model-name">
+        <pre class="model-fallback" aria-hidden="true">{escape(fallback)}</pre>
+        <canvas class="model-canvas" aria-hidden="true" hidden></canvas>
       </div>
-      <figcaption class="model-heading"><span>{caption[lang]}</span><span class="model-hint" hidden>{t('Drag to rotate', '拖动旋转')}</span></figcaption>
+      <figcaption id="{key}-model-name" class="sr-only">{caption[lang]}</figcaption>
+      <p id="{key}-model-help" class="sr-only" hidden>{t('Drag or use the arrow keys to rotate. Home resets the view.', '拖动或使用方向键旋转。按 Home 重置视角。')} {interaction[key][lang]} {t('Press Enter to do the same.', '也可以按回车键操作。')}</p>
+      <p class="sr-only" role="status"></p>
     </figure>
   </div>
 </section>''')
@@ -379,6 +374,7 @@ def page(lang):
 <nav id="navigation" class="navigation" aria-label="{'主导航' if zh else 'Main navigation'}">{nav}</nav>
 <div class="nav-actions"><button class="model-key jump-trigger" type="button" aria-haspopup="dialog" aria-controls="section-jump" aria-label="{'跳转到章节' if zh else 'Jump to section'}" aria-keyshortcuts="Control+K Meta+K" hidden>{icon('search')}<span>{'跳转' if zh else 'Jump'}</span><kbd aria-hidden="true">Ctrl K</kbd></button><a class="language-link" href="{other}" lang="{'en' if zh else 'zh-Hans'}" hreflang="{'en' if zh else 'zh-Hans'}" aria-label="{c['lang']}"><span class="{'muted' if zh else 'current'}">EN</span><span aria-hidden="true"> / </span><span class="{'current' if zh else 'muted'}">中</span></a><button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false" aria-label="{c['menu']}" data-open-label="{c['menu']}" data-close-label="{c['close']}" hidden><span></span><span></span></button></div></div></header>
 {jump_dialog(lang)}
+<canvas class="page-field" aria-hidden="true" hidden></canvas>
 <main id="main">
 <section class="hero" id="top" aria-labelledby="hero-heading"><div class="hero-field" aria-hidden="true"><canvas id="ascii-field"></canvas></div><div class="container hero-inner"><div class="intro-copy"><h1 id="hero-heading">{'你好，我是<br>William。' if zh else 'Hi, I’m<br>William.'}</h1><p class="hero-description">{c['intro']}</p><div class="hero-links"><a class="button button-blue" href="#about">{c['about_cta']}</a><a class="button" href="#work">{c['work_cta']}{icon('arrow')}</a></div></div></div></section>
 '''

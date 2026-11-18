@@ -1,8 +1,9 @@
-/* Canvas projection for the three Cobalt character models. */
+/* Viewport character streams and projection for the Cobalt models. */
 (() => {
   'use strict';
 
   const RAMP = '.:+*#%@';
+  const CELL_WIDTH = 8, CELL_HEIGHT = 16, GLYPH_SIZE = 13;
   const QUARTER = Math.PI / 2;
   const AMBIENT_LIMIT = 3800;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -11,6 +12,7 @@
     [0, 0, 1, 2, 3, 4, 5],
   ];
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const corners = (x, y, z) => x.flatMap(a => y.flatMap(b => z.map(c => [a, b, c])));
 
   function box(x, y, z, width, height, depth, material, inset = 0) {
     const center = [x, y, z];
@@ -19,8 +21,8 @@
     for (let axis = 0; axis < 3; axis++) {
       const across = (axis + 1) % 3;
       const up = (axis + 2) % 3;
-      const cols = Math.ceil(lengths[across] / 0.065);
-      const rows = Math.ceil(lengths[up] / 0.065);
+      const cols = Math.ceil(lengths[across] / 0.048);
+      const rows = Math.ceil(lengths[up] / 0.048);
       for (const sign of [-1, 1]) {
         const faceTone = typeof material === 'number' ? material : material(axis, sign);
         const normal = [0, 0, 0];
@@ -79,8 +81,7 @@
     const length = trace.at(-1).distance;
     return {
       yaw: -0.32, pitch: 0.84, size: 6.15,
-      flow: x => [0.22 + 0.13 * Math.sin(x * 5 - 0.65),
-        0.43 + 0.15 * Math.sin(x * 6 + 0.4), 0.68 + 0.15 * Math.sin(x * 5 - 2)],
+      bounds: () => corners([-2.45, 2.45], [-0.35, 0.22], [-1.625, 1.625]),
       paint(put, at, state) {
         points.forEach(point => put(point));
         if (state.signal === null) {
@@ -106,11 +107,7 @@
     }
     return {
       yaw: -0.18, pitch: 0.76, size: 5.95,
-      flow: (x, state) => {
-        const swing = state.pattern === 'steady' ? 0 : Math.sin(x * 8) * 0.6;
-        const wave = Math.sin(x * 7.5 + swing);
-        return [0.24 + wave * 0.12, 0.49 + Math.sin(x * 8 + 1 + swing) * 0.14, 0.71 - wave * 0.11];
-      },
+      bounds: () => corners([-2.4, 2.4], [-0.8, 1.36], [-0.92, 0.9]),
       paint(put, at, state) {
         points.forEach(point => put(point));
         const pulse = (state.ambient / 1450) % 1;
@@ -145,15 +142,22 @@
         }
       }
     }
+    const cubeBase = corners([-1.425, 1.425], [-1.425, 0.425], [-1.425, 1.425]);
+    const cubeTop = corners([-1.425, 1.425], [0.575, 1.425], [-1.425, 1.425]);
+    const layerAngle = (at, state) => {
+      const progress = state.turn ? clamp((at - state.turn.start) / 410, 0, 1) : 0;
+      return QUARTER * (state.turns + progress * progress * (3 - 2 * progress));
+    };
     return {
       yaw: -0.53, pitch: 0.44, size: 6.3,
-      flow: x => [0.2 + 0.24 * Math.sin(Math.PI * x),
-        0.49 + 0.22 * Math.sin(Math.PI * (x - 0.35)), 0.69 + 0.16 * Math.sin(Math.PI * (x + 0.35))],
+      bounds(at, state) {
+        const angle = layerAngle(at, state);
+        const sin = Math.sin(angle), cos = Math.cos(angle);
+        return cubeBase.concat(cubeTop.map(point => rotateY(point, sin, cos)));
+      },
       paint(put, at, state) {
         fixed.forEach(point => put(point));
-        const turn = state.turn;
-        const progress = turn ? clamp((at - turn.start) / 410, 0, 1) : 0;
-        const angle = QUARTER * (state.turns + (turn ? progress * progress * (3 - 2 * progress) : 0));
+        const angle = layerAngle(at, state);
         const sin = Math.sin(angle), cos = Math.cos(angle);
         layer.forEach(point => put(point, undefined, { sin, cos }));
       },
@@ -165,10 +169,92 @@
   const font = styles.getPropertyValue('--font-outlier').trim();
   const palette = ['--color-glyph-1', '--color-glyph-2', '--color-glyph-3', '--color-glyph-4',
     '--color-accent', '--color-accent-deep', '--color-ink'].map(name => styles.getPropertyValue(name).trim());
-  const trailFaint = styles.getPropertyValue('--color-model-trail').trim();
+
+  function startPageField() {
+    const canvas = document.querySelector('.page-field');
+    const ctx = canvas?.getContext('2d');
+    if (!ctx) return;
+
+    const textBlocks = [...document.querySelectorAll('.intro-copy, .about-copy, .topic-copy, .section-heading, .feature-copy, .section-tail, .interests-grid, .org-grid, .directory-controls, .repo-grid, .contact-grid, .site-footer')];
+    const graphite = document.querySelector('.organization-section');
+    const paperTints = ['light', 'mid', 'deep'].map(tint => styles.getPropertyValue('--color-stream-' + tint).trim());
+    const graphiteTints = [1, 2, 3].map(tint => styles.getPropertyValue('--color-graphite-glyph-' + tint).trim());
+    const streamRamp = '.:+*#';
+    const strandSpacing = 300;
+    let width = 0, height = 0, frame = 0, lastDraw = -Infinity;
+    const start = performance.now();
+
+    function paint(now) {
+      frame = 0;
+      if (document.hidden || !width || !height) return;
+      if (now - lastDraw < 1000 / 30) { requestPaint(); return; }
+      lastDraw = now;
+      const top = window.scrollY;
+      const travel = motion.matches ? 0 : Math.min(now - start, AMBIENT_LIMIT) / 400;
+      const dark = graphite?.getBoundingClientRect();
+      const masks = textBlocks.map(block => block.getBoundingClientRect()).filter(rect => rect.bottom > 0 && rect.top < height);
+      const cols = Math.ceil(width / CELL_WIDTH);
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `${GLYPH_SIZE}px ${font || 'monospace'}`;
+      ctx.textBaseline = 'middle';
+
+      for (let lane = Math.floor((top - 190) / strandSpacing); lane <= Math.ceil((top + height + 190) / strandSpacing); lane++) {
+        for (let col = 0; col < cols; col++) {
+          const x = col * CELL_WIDTH;
+          const across = col / Math.max(1, cols - 1);
+          const phase = lane * 1.37;
+          const curve = lane * strandSpacing + 80 * Math.sin(across * 6.8 + phase) + 36 * Math.sin(across * 11 - phase);
+          const crest = 0.5 + 0.5 * Math.sin(across * 15 - travel + phase * 2);
+          for (const strand of [-1, 0, 1]) {
+            const center = curve + strand * (19 + 18 * Math.sin(across * 4 + phase));
+            const pageY = CELL_HEIGHT * Math.round(center / CELL_HEIGHT);
+            const y = pageY - top;
+            if (pageY < 0 || y < -CELL_HEIGHT || y > height + CELL_HEIGHT) continue;
+            const hash = (Math.imul(col + 1, 73856093) ^ Math.imul(lane + 96, 19349663) ^ Math.imul(strand + 4, 83492791)) >>> 0;
+            const noise = (hash % 113) / 113;
+            if (strand && noise > 0.42 + crest * 0.37) continue;
+            const density = (0.27 + crest * 0.56 + noise * 0.17) * (strand ? 0.72 : 1);
+            const shade = density > 0.76 ? 2 : density > 0.48 ? 1 : 0;
+            const inGraphite = dark && y >= dark.top && y <= dark.bottom;
+            const overText = masks.some(rect => x + CELL_WIDTH >= rect.left - 6 && x <= rect.right + 6 && y >= rect.top - 6 && y <= rect.bottom + 6);
+            ctx.globalAlpha = overText ? 0.25 : 0.88;
+            ctx.fillStyle = (inGraphite ? graphiteTints : paperTints)[shade];
+            ctx.fillText(streamRamp[Math.min(4, Math.floor(density * 5))], x, y);
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+      if (!motion.matches && now - start < AMBIENT_LIMIT) requestPaint();
+    }
+
+    function requestPaint() {
+      if (!frame && !document.hidden) frame = requestAnimationFrame(paint);
+    }
+
+    function resize() {
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      requestPaint();
+    }
+
+    canvas.hidden = false;
+    window.addEventListener('scroll', requestPaint, { passive: true });
+    window.addEventListener('resize', resize, { passive: true });
+    document.addEventListener('visibilitychange', requestPaint);
+    if (motion.addEventListener) motion.addEventListener('change', requestPaint);
+    else motion.addListener(requestPaint);
+    document.fonts?.ready.then(requestPaint);
+    resize();
+  }
+
+  startPageField();
 
   function renderer(canvas, ctx, model) {
-    const cellWidth = 8, cellHeight = 16;
+    const cellWidth = CELL_WIDTH, cellHeight = CELL_HEIGHT;
     let cols, rows, width, height, depth, tones, glyphs, lit;
 
     function resize() {
@@ -193,10 +279,19 @@
       depth.fill(-Infinity);
       const yawSin = Math.sin(state.yaw), yawCos = Math.cos(state.yaw);
       const pitchSin = Math.sin(state.pitch), pitchCos = Math.cos(state.pitch);
-      const scale = Math.min(width, height * 1.2) / model.size;
+      let scale = Math.min(width * 1.1, height * 1.25) / model.size;
+      // Fit the rotated silhouette while keeping the glyphs themselves the same size.
+      for (const [x, y, z] of model.bounds(time, state)) {
+        const rx = x * yawCos + z * yawSin;
+        const rz = z * yawCos - x * yawSin;
+        const ry = y * pitchCos - rz * pitchSin;
+        const perspective = 8 / (8 - y * pitchSin - rz * pitchCos);
+        scale = Math.min(scale, (width / 2 - CELL_WIDTH) / Math.abs(rx * perspective),
+          (height / 2 - CELL_HEIGHT) / Math.abs(ry * perspective));
+      }
       const ox = (width - cols * cellWidth) / 2;
       const oy = (height - rows * cellHeight) / 2;
-      ctx.font = `13px ${font || 'monospace'}`;
+      ctx.font = `${GLYPH_SIZE}px ${font || 'monospace'}`;
       ctx.textBaseline = 'middle';
 
       function put(point, requestedTone = point.tone, turn, glyph) {
@@ -229,28 +324,6 @@
       }
 
       model.paint(put, time, state);
-      // Each path trails off as lighter glyphs. Leave painted model cells clear.
-      const travel = state.ambient / 360;
-      for (let col = 0; col < cols; col++) {
-        const x = col / (cols - 1);
-        model.flow(x, state).forEach((y, path) => {
-          const offset = path * 0.27;
-          const crest = Math.pow(0.5 + 0.5 * Math.sin(x * 18 - travel + offset * 14), 2);
-          const taper = Math.sin(Math.PI * (0.06 + 0.88 * x));
-          const center = y + 0.012 * Math.sin(x * 18 - travel + path);
-          const mainRow = Math.round(center * (rows - 1));
-          for (const band of [-1, 0, 1]) {
-            const row = mainRow + band;
-            if (row < 0 || row >= rows || Number.isFinite(depth[row * cols + col])) continue;
-            const density = (0.20 + 0.80 * crest) * taper;
-            if (band && density < 0.57 + (col % 3) * 0.09) continue;
-            if (!band && density < 0.16 && col % 3 === 1) continue;
-            const glyph = ['.', ':', '+', '*'][Math.min(3, Math.floor((band ? density * 0.58 : density) * 4))];
-            ctx.fillStyle = band || density < 0.25 ? trailFaint : palette[density > 0.68 ? 1 : 0];
-            ctx.fillText(glyph, ox + col * cellWidth, oy + (row + 0.5) * cellHeight);
-          }
-        });
-      }
       for (let index = 0; index < depth.length; index++) {
         if (!Number.isFinite(depth[index])) continue;
         const col = index % cols, row = Math.floor(index / cols);
@@ -286,16 +359,13 @@
     if (!ctx) return;
     const model = factories[figure.dataset.model]();
     const stage = figure.querySelector('.model-stage');
-    const buttons = [...figure.querySelectorAll('[data-action]')];
     const status = figure.querySelector('[role="status"]');
-    const play = figure.querySelector('[data-action="motion"]');
     const view = renderer(canvas, ctx, model);
     const state = {
       yaw: model.yaw, pitch: model.pitch, ambient: 0, pattern: 'steady',
       signal: null, signalDone: false, turns: 0, turn: null,
     };
     let inView = false;
-    let paused = false;
     let drag = null;
     let announceFrame = 0;
     const announce = message => {
@@ -303,23 +373,18 @@
       status.textContent = '';
       announceFrame = requestAnimationFrame(() => { status.textContent = message; });
     };
-    const canAnimate = () => !motion.matches && !paused && inView && !document.hidden;
+    const canAnimate = () => !motion.matches && inView && !document.hidden;
     const running = () => canAnimate() && (state.ambient < AMBIENT_LIMIT || state.turn || state.signal !== null && !state.signalDone);
-    const syncMotionKey = () => {
-      play.hidden = motion.matches;
-      const label = paused || state.ambient >= AMBIENT_LIMIT ? play.dataset.play : play.dataset.pause;
-      if (play.textContent !== label) play.textContent = label;
-    };
     const finishTurn = () => {
       if (!state.turn) return;
       state.turns = (state.turns + 1) % 4;
-      announce(state.turn.message);
+      announce(figure.dataset.complete);
       state.turn = null;
     };
     const finishSignal = () => {
       if (state.signal === null || state.signalDone) return;
       state.signalDone = true;
-      announce(figure.querySelector('[data-action="signal"]').dataset.complete);
+      announce(figure.dataset.complete);
     };
     const draw = now => view.draw(now, state);
     const settle = () => {
@@ -337,7 +402,6 @@
       if (state.turn && now - state.turn.start >= 410) finishTurn();
       if (state.signal !== null && now - state.signal >= 960) finishSignal();
       draw(now);
-      syncMotionKey();
     }
 
     function move(dx, dy) {
@@ -346,48 +410,22 @@
       draw(performance.now());
     }
 
-    function activate(button) {
+    function activate() {
       const now = performance.now();
-      switch (button.dataset.action) {
-        case 'left': move(-0.24, 0); return;
-        case 'right': move(0.24, 0); return;
-        case 'up': move(0, 0.24); return;
-        case 'down': move(0, -0.24); return;
-        case 'view':
-          state.yaw = model.yaw;
-          state.pitch = model.pitch;
-          break;
-        case 'motion':
-          if (paused || state.ambient >= AMBIENT_LIMIT) {
-            paused = false;
-            state.ambient = 0;
-          } else {
-            paused = true;
-            settle();
-          }
-          syncMotionKey();
-          break;
-        case 'signal':
-          state.signal = now;
+      switch (figure.dataset.model) {
+        case 'technology':
+          state.signal = canAnimate() ? now : now - 960;
           state.signalDone = false;
-          if (!canAnimate()) settle();
+          if (!canAnimate()) finishSignal();
           break;
-        case 'steady':
-        case 'syncopated':
-          state.pattern = button.dataset.action;
-          buttons.filter(key => key.hasAttribute('aria-pressed')).forEach(key => {
-            key.setAttribute('aria-pressed', String(key === button));
-          });
+        case 'music':
+          state.pattern = state.pattern === 'steady' ? 'syncopated' : 'steady';
+          announce(state.pattern === 'steady' ? figure.dataset.complete : figure.dataset.altComplete);
           break;
-        case 'turn':
+        case 'cubing':
           finishTurn();
-          state.turn = { start: now, message: button.dataset.complete };
+          state.turn = { start: now };
           if (!canAnimate()) finishTurn();
-          break;
-        case 'cube':
-          state.turn = null;
-          state.turns = 0;
-          announce(button.dataset.complete);
           break;
       }
       draw(now);
@@ -396,30 +434,60 @@
 
     stage.addEventListener('pointerdown', event => {
       if (!event.isPrimary || event.button !== 0) return;
-      drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
       stage.setPointerCapture(event.pointerId);
-      stage.classList.add('is-dragging');
     });
     stage.addEventListener('pointermove', event => {
       if (!drag || event.pointerId !== drag.id) return;
       const dx = event.clientX - drag.x;
-      const dy = event.pointerType === 'touch' ? 0 : event.clientY - drag.y;
-      move(dx * 0.012, dy * 0.012);
+      const dy = event.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+      drag.moved = true;
+      stage.classList.add('is-dragging');
+      move(dx * 0.012, event.pointerType === 'touch' ? 0 : dy * 0.012);
       drag.x = event.clientX;
       drag.y = event.clientY;
     });
     function endDrag(event) {
       if (event.pointerId !== drag?.id) return;
+      const tap = event.type === 'pointerup' && !drag.moved;
       drag = null;
       stage.classList.remove('is-dragging');
+      if (tap) activate();
     }
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(type => stage.addEventListener(type, endDrag));
-    buttons.forEach(button => button.addEventListener('click', () => activate(button)));
+    stage.addEventListener('keydown', event => {
+      if (event.altKey || event.metaKey || event.ctrlKey) return;
+      switch (event.key) {
+        case 'ArrowLeft': move(-0.24, 0); break;
+        case 'ArrowRight': move(0.24, 0); break;
+        case 'ArrowUp': move(0, 0.24); break;
+        case 'ArrowDown': move(0, -0.24); break;
+        case 'Home':
+          state.yaw = model.yaw;
+          state.pitch = model.pitch;
+          draw(performance.now());
+          break;
+        case 'Enter':
+        case ' ':
+          if (!event.repeat) activate();
+          break;
+        default: return;
+      }
+      event.preventDefault();
+    });
+    stage.addEventListener('click', event => {
+      // An assistive activation has no pointer sequence.
+      if (event.detail === 0) activate();
+    });
 
     canvas.hidden = false;
     figure.querySelector('.model-fallback').hidden = true;
-    figure.querySelector('.model-controls').hidden = false;
-    figure.querySelector('.model-hint').hidden = false;
+    const help = figure.querySelector('[id$="-model-help"]');
+    help.hidden = false;
+    stage.tabIndex = 0;
+    stage.setAttribute('role', 'button');
+    stage.setAttribute('aria-describedby', help.id);
     stage.classList.add('is-interactive');
     const resize = () => { view.resize(); draw(performance.now()); };
     resize();
@@ -428,13 +496,11 @@
     document.fonts?.ready.then(resize);
     const motionChanged = () => {
       if (!canAnimate()) settle();
-      syncMotionKey();
       schedule();
     };
     if (motion.addEventListener) motion.addEventListener('change', motionChanged);
     else motion.addListener(motionChanged);
     document.addEventListener('visibilitychange', motionChanged);
-    syncMotionKey();
 
     const instance = {
       running, update,

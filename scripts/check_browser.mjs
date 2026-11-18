@@ -73,13 +73,22 @@ try {
   console.log('PASS mobile menu, Escape/focus, section-preserving language switch, and reduced-motion still field');
 
   const modelImage = topic => page.$eval(`#${topic} .model-canvas`, canvas => canvas.toDataURL());
-  const modelAction = async (topic, action) => {
+  const modelAction = async (topic, key) => {
     await page.$eval('#' + topic, el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
-    await page.click(`#${topic} [data-action="${action}"]`);
+    const stage = `#${topic} .model-stage`;
+    if (key) {
+      await page.focus(stage);
+      await page.keyboard.press(key);
+    } else {
+      await page.click(stage);
+    }
   };
   await page.setViewport({ width: 1440, height: 900 });
   await go('/');
   await page.waitForSelector('.model-canvas:not([hidden])');
+  assert.equal(await page.$$eval('.topic-model button', els => els.length), 0);
+  assert.equal(await page.$eval('.page-field', el => el.clientWidth), 1440);
+  const heroField = await page.$eval('.page-field', el => el.toDataURL());
   for (const [topic, right] of [['technology', true], ['music', false], ['cubing', true]]) {
     const placement = await page.$eval('#' + topic, section => {
       const model = section.querySelector('figure');
@@ -89,37 +98,36 @@ try {
       const start = grid.getBoundingClientRect().top + scrollY - pin;
       const measure = y => { scrollTo({ top: y, behavior: 'instant' }); return model.getBoundingClientRect().top; };
       return { left: model.getBoundingClientRect().left, copy: topicCopy.getBoundingClientRect().left,
-        first: measure(start + 40), second: measure(start + 100), released: measure(start + grid.offsetHeight) };
+        width: model.clientWidth, first: measure(start + 40), second: measure(start + 100), released: measure(start + grid.offsetHeight) };
     });
     assert.equal(placement.left > placement.copy, right);
+    assert(placement.width >= 800, topic + ' should use the wider drawing area');
     assert(Math.abs(placement.first - placement.second) < 2 && placement.released < placement.second - 30, topic + ' should pin and release');
     const initial = await modelImage(topic);
-    await modelAction(topic, 'left');
+    await modelAction(topic, 'ArrowLeft');
     assert.notEqual(await modelImage(topic), initial);
-    await modelAction(topic, 'view');
+    await modelAction(topic, 'Home');
     assert.equal(await modelImage(topic), initial);
   }
   const cubeStart = await modelImage('cubing');
-  await modelAction('cubing', 'turn');
+  await modelAction('cubing');
   assert.notEqual(await modelImage('cubing'), cubeStart);
   const turned = await modelImage('cubing');
-  await modelAction('cubing', 'right');
-  await modelAction('cubing', 'view');
+  await modelAction('cubing', 'ArrowRight');
+  await modelAction('cubing', 'Home');
   assert.equal(await modelImage('cubing'), turned, 'A view reset must keep the applied turn');
-  for (let i = 0; i < 3; i++) await modelAction('cubing', 'turn');
+  for (let i = 0; i < 3; i++) await modelAction('cubing', 'Enter');
   assert.equal(await modelImage('cubing'), cubeStart, 'Four turns must restore the puzzle');
-  await modelAction('cubing', 'turn');
-  await modelAction('cubing', 'cube');
-  assert.equal(await modelImage('cubing'), cubeStart);
   const steady = await modelImage('music');
-  await modelAction('music', 'syncopated');
+  await modelAction('music');
   assert.notEqual(await modelImage('music'), steady);
-  assert.equal(await page.$eval('#music [data-action="syncopated"]', el => el.getAttribute('aria-pressed')), 'true');
+  await page.waitForFunction(() => document.querySelector('#music [role="status"]').textContent.includes('Syncopated'));
   const unlit = await modelImage('technology');
-  await modelAction('technology', 'signal');
+  await modelAction('technology');
   assert.notEqual(await modelImage('technology'), unlit);
   await page.waitForFunction(() => document.querySelector('#technology [role="status"]').textContent.includes('contact'));
-  console.log('PASS desktop pinning and alternation, all model actions, rotate/reset, and four true cube turns');
+  await page.waitForFunction(initial => document.querySelector('.page-field').toDataURL() !== initial, {}, heroField);
+  console.log('PASS full-width page field, larger unframed models, pinning, direct actions, and keyboard rotation');
 
   await page.keyboard.down('Control');
   await page.keyboard.press('k');
@@ -128,7 +136,7 @@ try {
   await page.type('#section-jump input', 'missing topic');
   assert.equal(await page.$eval('.jump-empty', el => el.hidden), false);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => !document.querySelector('#section-jump').open && document.activeElement.matches('#technology [data-action="signal"]'));
+  await page.waitForFunction(() => !document.querySelector('#section-jump').open && document.activeElement.matches('#technology .model-stage'));
   await page.click('.jump-trigger');
   await page.type('#section-jump input', 'music');
   await page.keyboard.press('ArrowDown');
@@ -151,7 +159,7 @@ try {
   assert.equal(await plain.$$eval('.repo-card', els => els.filter(el => !el.hidden).length), 28);
   assert.equal(await plain.$eval('.directory-controls', el => getComputedStyle(el).display), 'none');
   assert.equal(await plain.$$eval('.model-fallback:not([hidden])', els => els.length), 3);
-  assert.equal(await plain.$$eval('.model-controls:not([hidden]), .jump-trigger:not([hidden])', els => els.length), 0);
+  assert.equal(await plain.$$eval('.model-stage[tabindex], .jump-trigger:not([hidden])', els => els.length), 0);
   await plain.click('#project-whaos summary');
   assert.equal(await plain.$eval('#project-whaos details', el => el.open), true);
   await plain.close();
