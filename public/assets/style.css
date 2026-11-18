@@ -15,9 +15,9 @@
   --font-outlier: "JetBrains Mono", ui-monospace, monospace;
   --text-display: clamp(4rem, 10vw + 1rem, 10rem);
   --color-muted: oklch(47% 0.018 258);
-  --color-stream-light: oklch(87% 0.049 255);
-  --color-stream-mid: oklch(80% 0.067 256);
-  --color-stream-deep: oklch(72% 0.087 257);
+  --color-stream-light: oklch(91% 0.032 255);
+  --color-stream-mid: oklch(86% 0.046 256);
+  --color-stream-deep: oklch(80% 0.06 257);
   --header-height: 80px;
   --color-clear: transparent;
 }

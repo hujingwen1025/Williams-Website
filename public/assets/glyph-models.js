@@ -182,15 +182,19 @@
     const streamRamp = '.:+*#';
     const strandSpacing = 300;
     let width = 0, height = 0, frame = 0, lastDraw = -Infinity;
-    const start = performance.now();
+    let travel = 0;
 
     function paint(now) {
       frame = 0;
       if (document.hidden || !width || !height) return;
       if (now - lastDraw < 1000 / 30) { requestPaint(); return; }
+      const animated = !motion.matches;
+      if (animated && Number.isFinite(lastDraw)) {
+        travel = (travel + Math.min(now - lastDraw, 80) / 1450) % (2 * Math.PI);
+      }
       lastDraw = now;
       const top = window.scrollY;
-      const travel = motion.matches ? 0 : Math.min(now - start, AMBIENT_LIMIT) / 400;
+      const phaseOffset = animated ? travel : 0;
       const dark = graphite?.getBoundingClientRect();
       const masks = textBlocks.map(block => block.getBoundingClientRect()).filter(rect => rect.bottom > 0 && rect.top < height);
       const cols = Math.ceil(width / CELL_WIDTH);
@@ -204,11 +208,12 @@
           const across = col / Math.max(1, cols - 1);
           const phase = lane * 1.37;
           const curve = lane * strandSpacing + 80 * Math.sin(across * 6.8 + phase) + 36 * Math.sin(across * 11 - phase);
-          const crest = 0.5 + 0.5 * Math.sin(across * 15 - travel + phase * 2);
+          const crest = 0.5 + 0.5 * Math.sin(across * 15 - phaseOffset + phase * 2);
+          const drift = animated ? 6 * Math.sin(across * 7 - phaseOffset + phase) : 0;
           for (const strand of [-1, 0, 1]) {
             const center = curve + strand * (19 + 18 * Math.sin(across * 4 + phase));
             const pageY = CELL_HEIGHT * Math.round(center / CELL_HEIGHT);
-            const y = pageY - top;
+            const y = pageY - top + drift;
             if (pageY < 0 || y < -CELL_HEIGHT || y > height + CELL_HEIGHT) continue;
             const hash = (Math.imul(col + 1, 73856093) ^ Math.imul(lane + 96, 19349663) ^ Math.imul(strand + 4, 83492791)) >>> 0;
             const noise = (hash % 113) / 113;
@@ -217,14 +222,14 @@
             const shade = density > 0.76 ? 2 : density > 0.48 ? 1 : 0;
             const inGraphite = dark && y >= dark.top && y <= dark.bottom;
             const overText = masks.some(rect => x + CELL_WIDTH >= rect.left - 6 && x <= rect.right + 6 && y >= rect.top - 6 && y <= rect.bottom + 6);
-            ctx.globalAlpha = overText ? 0.25 : 0.88;
+            ctx.globalAlpha = overText ? 0.19 : 0.72;
             ctx.fillStyle = (inGraphite ? graphiteTints : paperTints)[shade];
             ctx.fillText(streamRamp[Math.min(4, Math.floor(density * 5))], x, y);
           }
         }
       }
       ctx.globalAlpha = 1;
-      if (!motion.matches && now - start < AMBIENT_LIMIT) requestPaint();
+      if (animated) requestPaint();
     }
 
     function requestPaint() {
@@ -244,9 +249,13 @@
     canvas.hidden = false;
     window.addEventListener('scroll', requestPaint, { passive: true });
     window.addEventListener('resize', resize, { passive: true });
-    document.addEventListener('visibilitychange', requestPaint);
-    if (motion.addEventListener) motion.addEventListener('change', requestPaint);
-    else motion.addListener(requestPaint);
+    function resumePaint() {
+      lastDraw = -Infinity;
+      requestPaint();
+    }
+    document.addEventListener('visibilitychange', resumePaint);
+    if (motion.addEventListener) motion.addEventListener('change', resumePaint);
+    else motion.addListener(resumePaint);
     document.fonts?.ready.then(requestPaint);
     resize();
   }
