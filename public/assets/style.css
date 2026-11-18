@@ -488,20 +488,49 @@ html[lang="zh-Hans"] h2, html[lang="zh-Hans"] h3 { line-height: 1.3; letter-spac
 }
 .milestone-dashes { stroke: var(--color-glyph-3); stroke-dasharray: 0.5 6; }
 .milestone-ink { stroke: var(--color-accent); }
-.journey-next { display: flex; margin-inline-start: calc(var(--trail-width) + var(--trail-gap)); }
-.journey-next .model-key { min-height: 40px; }
-.journey-next .icon { width: 16px; height: 16px; transform: rotate(90deg); }
+.journey-next {
+  position: sticky;
+  bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  z-index: var(--z-raised);
+  display: flex;
+  justify-content: center;
+  margin-inline: calc(-1 * var(--journey-inset)) 0;
+  pointer-events: none;
+}
+.journey-next a {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding-inline: var(--space-sm);
+  color: var(--color-accent-deep);
+  font: 600 var(--text-md)/1.4 var(--font-display);
+  pointer-events: auto;
+}
+.journey-next a::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(-1 * var(--space-sm));
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--color-key-face);
+  filter: blur(10px);
+  pointer-events: none;
+}
 
 @media (prefers-reduced-motion: no-preference) {
-  .journey.is-scroll-driven .milestone-ink { clip-path: inset(-2px -2px var(--trail-unfilled, 0%) -2px); }
-  .journey.is-scroll-driven .milestone-copy {
-    transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+  @keyframes milestone-appear {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
+  .journey.is-scroll-driven .milestone-ink { clip-path: inset(-2px -2px var(--trail-unfilled, 0%) -2px); }
   .journey.is-scroll-driven .milestone:not(.is-reached):not(:focus-within) .milestone-copy {
     opacity: 0;
-    transform: translateY(8px);
   }
-  .journey.is-scroll-driven .milestone:focus-within .milestone-copy { transition: none; }
+  .journey.is-scroll-driven .milestone.is-revealing .milestone-copy {
+    animation: milestone-appear var(--dur-long) ease-out both;
+  }
 }
 @media (max-width: 700px) {
   .journey-visual { --gutter: 10px; }

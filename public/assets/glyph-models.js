@@ -483,7 +483,9 @@
         const points = milestones.map(({ dot }) => dot.getBoundingClientRect().top + dot.offsetHeight / 2);
         milestones.forEach(({ row, trail }, index) => {
           // Start the reveal while the dot is still approaching the middle.
-          if (points[index] <= height * 0.73) row.classList.add('is-reached');
+          if (points[index] <= height * 0.73 && !row.classList.contains('is-reached')) {
+            row.classList.add('is-reached', 'is-revealing');
+          }
           if (trail) {
             const fill = clamp((height * 0.63 - points[index]) / (points[index + 1] - points[index]), 0, 1);
             trail.style.setProperty('--trail-unfilled', `${(1 - fill) * 100}%`);
@@ -636,7 +638,12 @@
       // An assistive activation has no pointer sequence.
       if (event.detail === 0) activate();
     });
-    journey.addEventListener('focusin', event => event.target.closest('.milestone')?.classList.add('is-reached'));
+    journey.addEventListener('focusin', event => {
+      const row = event.target.closest('.milestone');
+      if (!row) return;
+      row.classList.add('is-reached');
+      row.classList.remove('is-revealing');
+    });
 
     canvas.hidden = false;
     figure.querySelector('.model-fallback').hidden = true;

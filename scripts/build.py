@@ -385,7 +385,7 @@ def topic_journey(key, lang, projects):
     <ol class="milestone-path" role="list">
       {"".join(rows)}
     </ol>
-    <div class="journey-next"><a class="model-key" href="#{next_id}">{next_label[lang]}{icon("arrow")}</a></div>
+    <div class="journey-next"><a href="#{next_id}">{next_label[lang]}</a></div>
   </div>'''
 
 

@@ -165,6 +165,10 @@ try {
       const el = document.querySelector(selector);
       return el.classList.contains('is-reached') && el.getBoundingClientRect().top > innerHeight / 2;
     }, {}, first);
+    await page.waitForFunction(selector => {
+      const opacity = Number(getComputedStyle(document.querySelector(selector + ' .milestone-copy')).opacity);
+      return opacity > 0 && opacity < 1;
+    }, {}, first);
     await approach(0.51);
     await page.waitForFunction(selector => {
       const trail = document.querySelector(selector + ' .milestone-trail');
@@ -174,9 +178,15 @@ try {
       const canvas = document.querySelector('#' + id + ' .journey-visual canvas');
       return parseFloat(canvas.style.opacity) < 0.5 && parseFloat(canvas.style.opacity) > 0;
     }, {}, topic);
-    assert.equal(await page.$eval('#' + topic + ' .journey-next a', el => el.hash), next);
+    const jump = '#' + topic + ' .journey-next a';
+    assert.equal(await page.$eval(jump, el => el.hash), next);
+    assert(await page.$eval(jump, el => {
+      const bounds = el.getBoundingClientRect();
+      return Math.abs(bounds.left + bounds.width / 2 - innerWidth / 2) < 1
+        && innerHeight - bounds.bottom >= 0 && innerHeight - bounds.bottom <= 32;
+    }), 'The jump link should float at the bottom center of the viewport');
   }
-  console.log('PASS each milestone path reveals above center, fills the line, shows the faint model, and links onward');
+  console.log('PASS each milestone path fades in above center, fills the line, shows the faint model, and floats its jump link');
 
   const fallback = await browser.newPage();
   fallback.on('pageerror', error => errors.push(error.message));
