@@ -5,6 +5,8 @@
   const RAMP = '.:+*#%@';
   const CELL_WIDTH = 8, CELL_HEIGHT = 16, GLYPH_SIZE = 13;
   const QUARTER = Math.PI / 2;
+  const FULL_TURN = 4 * QUARTER;
+  const INTRO_SPIN_DURATION = 3000;
   const AMBIENT_LIMIT = 3800;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const themes = [
@@ -375,6 +377,7 @@
       signal: null, signalDone: false, turns: 0, turn: null,
     };
     let inView = false;
+    let introSpin = true;
     let drag = null;
     let announceFrame = 0;
     const announce = message => {
@@ -408,18 +411,26 @@
     function update(now, step) {
       if (!running()) return;
       state.ambient = Math.min(AMBIENT_LIMIT, state.ambient + step);
+      if (introSpin) {
+        const progress = Math.min(1, state.ambient / INTRO_SPIN_DURATION);
+        introSpin = progress < 1;
+        const eased = progress - 0.85 * Math.sin(FULL_TURN * progress) / FULL_TURN;
+        state.yaw = introSpin ? model.yaw + FULL_TURN * eased : model.yaw;
+      }
       if (state.turn && now - state.turn.start >= 410) finishTurn();
       if (state.signal !== null && now - state.signal >= 960) finishSignal();
       draw(now);
     }
 
     function move(dx, dy) {
-      state.yaw = (state.yaw + dx) % (2 * Math.PI);
+      introSpin = false;
+      state.yaw = (state.yaw + dx) % FULL_TURN;
       state.pitch = clamp(state.pitch + dy, -Math.PI, Math.PI);
       draw(performance.now());
     }
 
     function activate() {
+      introSpin = false;
       const now = performance.now();
       switch (figure.dataset.model) {
         case 'technology':
@@ -443,6 +454,7 @@
 
     stage.addEventListener('pointerdown', event => {
       if (!event.isPrimary || event.button !== 0) return;
+      introSpin = false;
       drag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
       stage.setPointerCapture(event.pointerId);
     });
@@ -473,6 +485,7 @@
         case 'ArrowUp': move(0, 0.24); break;
         case 'ArrowDown': move(0, -0.24); break;
         case 'Home':
+          introSpin = false;
           state.yaw = model.yaw;
           state.pitch = model.pitch;
           draw(performance.now());
@@ -504,6 +517,7 @@
     else window.addEventListener('resize', resize, { passive: true });
     document.fonts?.ready.then(resize);
     const motionChanged = () => {
+      if (inView && motion.matches) introSpin = false;
       if (!canAnimate()) settle();
       schedule();
     };
@@ -515,6 +529,7 @@
       running, update,
       show(visible) {
         inView = visible;
+        if (visible && motion.matches) introSpin = false;
         if (!visible) settle();
         schedule();
       },

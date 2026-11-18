@@ -259,7 +259,10 @@ def feature(p, lang, prefix):
 TOPICS = (
     ("technology", L("Technology", "科技"), L("I like figuring out how things work, then writing software that makes them a little easier to use.", "我喜欢弄清事物是如何运作的，再写一些软件，让它们用起来更顺手。"),
      L("My projects include learning tools and software for everyday workflows. Tap the circuit board to follow a signal from the chip to a contact at the edge.", "我的项目包括学习工具和解决日常问题的软件。轻触电路板，看看信号怎样从芯片传到边缘的触点。"),
-     L("Circuit board", "电路板"), (("project-academy", "CAICP Academy"), ("project-dorm", "Dorm Pass Manager")),
+     L("Circuit board", "电路板"), (
+         ("project-academy", "CAICP Academy", L("Independent bilingual CAICP prep with lessons, interactive labs, and practice.", "独立的 CAICP 双语备考网站，提供课程、交互实验和练习。")),
+         ("project-dorm", "Dorm Pass Manager", L("Manages dorm passes, approvals, and kiosk or mobile sign-ins.", "管理宿舍通行申请与审批，支持自助终端和手机签到。")),
+     ),
      """         .----------------------.
         / +++==[######]==+++   /|
        / ::: /@:::::@/  ::   / |
@@ -267,8 +270,11 @@ TOPICS = (
      /=====================/  /
      '---------------------' /"""),
     ("music", L("Music", "音乐"), L("I play piano, listen to music, and explore what happens when sound and code come together.", "我喜欢弹钢琴、听音乐，也喜欢探索声音与代码碰到一起会发生什么。"),
-     L("That curiosity carries into Resona Lite and Rhythm Cook. Tap the piano to see how moving the accents changes the rhythm.", "这份好奇心也延伸到了 Resona Lite 和 Rhythm Cook。轻触钢琴，看看重音的位置会怎样改变节奏。"),
-     L("Piano and waveform", "钢琴与波形"), (("project-resona-lite", "Resona Lite"), ("project-rhythm", "Rhythm Cook")),
+     L("Tap the piano to see how moving the accents changes the rhythm.", "轻触钢琴，看看重音的位置会怎样改变节奏。"),
+     L("Piano and waveform", "钢琴与波形"), (
+         ("project-resona-lite", "Resona Lite", L("Generates ambient music on your device for rest and focus.", "在设备上生成环境音乐，陪伴休息与专注时光。")),
+         ("project-rhythm", "Rhythm Cook", L("Slice ingredients to a beat generated live in your browser.", "跟着浏览器实时生成的节拍切食材。")),
+     ),
      """           ::      ##
        +++:  :++++#  #++   ++
       /|##||##||#|||##||#|/|
@@ -276,8 +282,10 @@ TOPICS = (
     /__|__||__||_|||__||_|/ /
     '====================='"""),
     ("cubing", L("Cubing", "魔方"), L("Cubing is a chance to take a puzzle apart in my head, one turn at a time.", "玩魔方时，我喜欢在脑海里把一个难题拆成一次次转动。"),
-     L("Cubers brings that idea into guided lessons and interactive practice. Tap the cube to turn its top layer, then drag to see where the pieces went.", "Cubers 把这种思路做成了分步课程和交互练习。轻触魔方转动顶层，再拖动看看方块移到了哪里。"),
-     L("3×3 puzzle cube", "三阶魔方"), (("project-cubers", "Cubers"),),
+     L("Tap the cube to turn its top layer, then drag to see where the pieces went.", "轻触魔方转动顶层，再拖动看看方块移到了哪里。"),
+     L("3×3 puzzle cube", "三阶魔方"), (
+         ("project-cubers", "Cubers", L("A cubing app in development with guided lessons and interactive 3D practice.", "正在开发的魔方应用，提供分步课程和交互式 3D 练习。")),
+     ),
      """            +++
          +++:::+++
       +++:::+++:::+++
@@ -306,7 +314,11 @@ def topic_sections(lang):
     }
     sections = []
     for key, title, intro, detail, caption, destinations, fallback in TOPICS:
-        links = ''.join(f'<li><a href="#{anchor}">{name}{icon("arrow")}</a></li>' for anchor, name in destinations)
+        links = ''.join(
+            f'<li><a href="#{anchor}"><span><span class="topic-project-name">{escape(name)}</span>'
+            f'<span class="topic-project-description">{escape(description[lang])}</span></span>{icon("arrow")}</a></li>'
+            for anchor, name, description in destinations
+        )
         sections.append(f'''<section class="topic-section" id="{key}" aria-labelledby="{key}-heading">
   <div class="container topic-grid">
     <div class="topic-copy"><h2 id="{key}-heading">{title[lang]}</h2><p class="topic-lead">{intro[lang]}</p>
